@@ -32,7 +32,7 @@ metadata:
     du-name: {{ $radio.name | lower }}
 spec:
   nodeSelector:
-    kubernetes.io/hostname: {{ $radio.node | quote }}
+    kubernetes.io/hostname: {{ $.Values.splitCUConf.node | quote }}
   {{- if not $.Values.debug }}
   initContainers:
   - name: wait-cu
