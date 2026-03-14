@@ -90,7 +90,8 @@ spec:
             - |
               set -e
               tdnf install -y iproute2 || true
-              echo "[nic-vf-setup] Running VF setup on ${NODE_NAME}"
+              NODE="${NODE_NAME}"
+              echo "[nic-vf-setup] Running VF setup on ${NODE}"
               sh /scripts/setup.sh
 
               # -------------------------------------------------------
