@@ -1,0 +1,19 @@
+splitCUConf:
+  gnb_id: 1
+  gnb_id_length: 22
+  cores: "26-49"
+  node: k8s-worker3
+
+desiredRadios:
+- name: "INF1"
+  type: srsran-split
+- name: "CM1"
+  type: srsran-split
+- name: "DSB2"
+  type: srsran-split
+- name: "MLB1"
+  type: srsran-split
+- name: "MLB4"
+  type: srsran-split
+- name: "APT3"
+  type: srsran-split

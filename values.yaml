@@ -1,0 +1,24 @@
+image: ujjwal1997/srsran:flexphy
+amf_ip: 172.30.129.35
+cuPcapHostPath: /home/netsys/netdt_cu_pcap
+
+splitCUConf:
+  gnb_id: 1
+  gnb_id_length: 22
+  cores: "26-49"
+  node: k8s-worker1
+  amf_bind_ip: 10.0.0.1
+  f1ap_bind_ip: 10.0.0.1
+  f1u_bind_ip: 172.30.129.57
+  collector_ip: 10.233.29.41
+desiredRadios:
+- name: "MLB1"
+  type: srsran-migratable
+- name: "MLB4"
+  type: srsran-migratable
+- name: "CM1"
+  type: srsran-migratable
+- name: "INF1"
+  type: srsran-migratable
+- name: "APT3"
+  type: srsran-migratable

@@ -1,0 +1,153 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-split" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if eq $radio.name $desiredRadio.name }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}  
+{{ end -}}
+
+{{ range $radio := $radios }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-{{ $radio.name | lower }}
+  namespace: srsran-split
+  labels:
+    app: dpdk
+    du-name: {{ $radio.name | lower }}
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: {{ $radio.node | quote }}
+{{- if false }}
+  initContainers:
+  - name: setup-network-interface
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 &&
+      ip link set $INTERFACE vf $VF_INDEX mac $DU_MAC_ADDR trust on spoofchk off &&
+      ip link set $INTERFACE promisc on
+    securityContext:
+      privileged: true
+    env:
+    - name: INTERFACE
+      value: {{ $radio.network_interface | quote }}
+    - name: VF_INDEX
+      value: {{ $radio.dpdk_vf_index | quote }}
+    - name: DU_MAC_ADDR
+      value: {{ $radio.du_mac | quote }}
+{{- end }}
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    securityContext:
+      capabilities:
+        add: ["NET_RAW", "NET_ADMIN"]
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p 38472 10.0.0.1 | grep "38472/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ujjwal1997/srsran:loc
+    imagePullPolicy: Always
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/{{ $.Values.splitCUConf.f1ap_bind_ip }}/g" /tmp/du.conf &&
+      export SRSRAN_IQ_UDP_IP="127.0.0.1" &&
+      export SRSRAN_IQ_UDP_PORT="12345" &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: {{ $radio.cpu_cores | quote }}
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - |
+      set -e
+      apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 12346 10.105.253.161 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  - name: iq-collector
+    image: ujjwal1997/iq_receiver:loc
+    imagePullPolicy: Always
+    command: ["bash", "-c"]
+    args:
+    - |
+      set -e
+      apt update &&
+      apt install -y python3 python3-pip &&
+      pip3 install numpy &&
+      cd /usr/local/bin &&
+      START_TIME="$(date +%Y%m%d_%H%M%S)" &&
+      OUTDIR="/data/{{ $radio.name }}_${START_TIME}" &&
+      chmod 0777 /data &&
+      mkdir -p "$OUTDIR" &&
+      chmod 0777 "$OUTDIR" &&
+      umask 000 &&
+      python3 udp_iq_receiver_dynamic.py --save-iq --outdir "$OUTDIR"
+    volumeMounts:
+    - name: iq-data
+      mountPath: /data
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-{{ $radio.name | lower }}-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+  - name: iq-data
+    hostPath:
+      path: {{ $.Values.iqDataHostPath | default "/home/netsys/netdt_data" | quote }}
+      type: DirectoryOrCreate
+---
+{{- end }}

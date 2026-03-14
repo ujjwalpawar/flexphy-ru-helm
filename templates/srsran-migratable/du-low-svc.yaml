@@ -1,0 +1,79 @@
+{{- /*
+  Per-DU Service exposing DU-Low FAPI ports so the proxy sidecar
+  in the DU-High pod can reach the DU-Low by a stable DNS name:
+    srsran-mig-du-low-<name>-svc.srsran-migratable.svc.cluster.local
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+
+{{- $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{- if eq $desiredRadio.type "srsran-migratable" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{- if eq $radio.name $desiredRadio.name }}
+        {{- $radios = append $radios $radio }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range $radio := $radios }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-mig-du-low-{{ $radio.name | lower }}-svc
+  namespace: srsran-migratable
+spec:
+  selector:
+    app: srsran-mig-du-low
+    du-name: {{ $radio.name | lower }}
+  ports:
+  - name: fapi-ctrl
+    port: 10001
+    targetPort: 10001
+    protocol: TCP
+  - name: fapi-slot
+    port: 10002
+    targetPort: 10002
+    protocol: TCP
+  - name: mig-ctrl
+    port: 9990
+    targetPort: 9990
+    protocol: TCP
+---
+# Headless service for remote-control / positioning queries between DUs.
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-mig-du-high-{{ $radio.name | lower }}-rc
+  namespace: srsran-migratable
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: srsran-mig-du-high
+    du-name: {{ $radio.name | lower }}
+  ports:
+  - name: rc
+    port: 55555
+    targetPort: 55555
+    protocol: TCP
+---
+# Service exposing the proxy's shadow registration port so that a
+# shadow DU-Low (on any node) can connect and announce itself.
+# Shadow DU-Low config: proxy_address = this service's DNS name.
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-mig-proxy-{{ $radio.name | lower }}-svc
+  namespace: srsran-migratable
+spec:
+  selector:
+    app: srsran-mig-du-high
+    du-name: {{ $radio.name | lower }}
+  ports:
+  - name: shadow-reg
+    port: 10005
+    targetPort: 10005
+    protocol: TCP
+{{- end }}

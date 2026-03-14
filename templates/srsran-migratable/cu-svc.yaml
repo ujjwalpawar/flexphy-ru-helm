@@ -1,0 +1,33 @@
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+{{- $radios := list -}}
+{{- range $desiredRadio := .Values.desiredRadios -}}
+  {{- if eq $desiredRadio.type "srsran-migratable" -}}
+    {{- range $radio := $ru_list_yaml.ru_list -}}
+      {{- if eq $radio.name $desiredRadio.name -}}
+        {{- $radios = append $radios $radio -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if gt (len $radios) 0 }}
+# F1AP service so DU-High pods can reach the CU by a stable DNS name.
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-mig-cu
+  namespace: srsran-migratable
+spec:
+  selector:
+    app: srsran-mig-cu
+  ports:
+  - name: f1ap
+    port: 38472
+    targetPort: 38472
+    protocol: SCTP
+  - name: f1u
+    port: 2152
+    targetPort: 2152
+    protocol: UDP
+---
+{{- end }}

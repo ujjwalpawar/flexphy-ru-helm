@@ -1,0 +1,181 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") -*/}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml -*/}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{- $radios := list -}}
+{{- range $desiredRadio := .Values.desiredRadios -}}
+  {{- if eq $desiredRadio.type "srsran-split" -}}
+    {{- range $radio := $ru_list_yaml.ru_list -}}
+      {{- if eq $radio.name $desiredRadio.name -}}
+        {{- $radios = append $radios $radio -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if gt (len $radios) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-collect-script-cu
+  namespace: srsran-split
+data:
+  metrics-collect.py: |
+    #!/usr/bin/env python3
+    """
+    ws_metrics_forwarder.py
+
+    Subscribe to metrics over a WebSocket and forward each JSON line over UDP.
+    Also prints to stdout and optionally appends to a file.
+
+    Usage:
+      WS_URL=ws://host:port/path python ws_metrics_forwarder.py <forward_host> <forward_port> [output_file]
+
+    Examples:
+      WS_URL=ws://127.0.0.1:9000/metrics python ws_metrics_forwarder.py 10.0.0.5 5000 metrics.log
+      WS_URL=ws://127.0.0.1:9000/metrics python ws_metrics_forwarder.py 10.0.0.5 5000        # no file
+    """
+
+    import os
+    import sys
+    import json
+    import socket
+    import signal
+    import time
+    from contextlib import suppress
+
+    import websocket  # pip install websocket-client
+
+    STOP = False
+
+
+    def _die(msg: str, code: int = 2):
+        print(msg, file=sys.stderr)
+        sys.exit(code)
+
+
+    def _parse_args():
+        if len(sys.argv) < 3 or len(sys.argv) > 4:
+            _die(
+                "Usage: WS_URL=ws://host:port/path python ws_metrics_forwarder.py <forward_host> <forward_port> [output_file]"
+            )
+        fwd_host = sys.argv[1]
+        with suppress(ValueError):
+            # Validate port input explicitly
+            int(sys.argv[2])
+        fwd_port = int(sys.argv[2])
+        outfile = sys.argv[3] if len(sys.argv) == 4 else None
+        return fwd_host, fwd_port, outfile
+
+
+    def main():
+        global STOP
+
+        ws_url = os.environ.get("WS_URL")
+        if not ws_url:
+            _die("Missing WS_URL env var (e.g., WS_URL=ws://127.0.0.1:9000/metrics)")
+
+        forward_host, forward_port, outfile = _parse_args()
+        print(
+            f"[startup] ws_url={ws_url} udp_target={forward_host}:{forward_port} outfile={outfile or 'none'}",
+            flush=True,
+        )
+        received_count = 0
+        forwarded_count = 0
+
+        # Prepare UDP socket for forwarding
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # Optional file handle (lazy-open each write to avoid data loss on abrupt exit)
+        def write_file(line: str):
+            if not outfile:
+                return
+            with open(outfile, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+
+        # Clean shutdown
+        def _sig_handler(_sig, _frame):
+            global STOP
+            STOP = True
+            try:
+                udp.close()
+            except Exception:
+                pass
+            # WebSocketApp will exit after run_forever returns
+            print("Shutting down...", file=sys.stderr)
+
+        signal.signal(signal.SIGINT, _sig_handler)
+        signal.signal(signal.SIGTERM, _sig_handler)
+
+        # WebSocket callbacks capture forwarding/writing logic
+        def _on_open(ws: websocket.WebSocketApp):
+            subscribe = {"cmd": "metrics_subscribe"}
+            print("[ws open] sending metrics_subscribe", flush=True)
+            ws.send(json.dumps(subscribe))
+
+        def _on_message(_ws: websocket.WebSocketApp, message: str):
+            nonlocal received_count, forwarded_count
+            with suppress(json.JSONDecodeError):
+                metric = json.loads(message)
+                # Only forward real metrics (skip control messages with a 'cmd')
+                if isinstance(metric, dict) and "cmd" in metric:
+                    return
+                received_count += 1
+                # Normalize to a compact JSON line
+                line = json.dumps(metric, separators=(",", ":"))
+                print(line, flush=True)
+                write_file(line)
+                # Forward over UDP
+                udp.sendto(line.encode("utf-8"), (forward_host, forward_port))
+                forwarded_count += 1
+                print(
+                    f"[counts] received={received_count} forwarded={forwarded_count} udp_target={forward_host}:{forward_port}",
+                    flush=True,
+                )
+
+        def _on_error(_ws: websocket.WebSocketApp, error):
+            print(f"[ws error] {error}", file=sys.stderr)
+
+        def _on_close(_ws: websocket.WebSocketApp, code, reason):
+            print(f"[ws closed] code={code} reason={reason}", file=sys.stderr)
+
+        backoff = 1.0
+        while not STOP:
+            print(f"[ws connect] {ws_url}", flush=True)
+            ws_app = websocket.WebSocketApp(
+                ws_url,
+                on_open=_on_open,
+                on_message=_on_message,
+                on_error=_on_error,
+                on_close=_on_close,
+            )
+
+            # run_forever blocks until closed; enable periodic pings to keep alive
+            try:
+                ws_app.run_forever(ping_interval=30, ping_timeout=10)
+            except Exception as e:
+                print(f"[ws exception] {e}", file=sys.stderr)
+
+            if STOP:
+                break
+
+            # Reconnect with capped exponential backoff
+            current_backoff = backoff
+            print(f"[ws reconnecting in {current_backoff:.0f}s]", file=sys.stderr)
+            time.sleep(current_backoff)
+            backoff = min(current_backoff * 2, 30.0)
+
+        # Ensure UDP socket closed
+        with suppress(Exception):
+            udp.close()
+
+
+    if __name__ == "__main__":
+        main()
+{{- end }}

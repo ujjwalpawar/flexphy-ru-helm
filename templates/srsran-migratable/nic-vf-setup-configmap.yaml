@@ -1,0 +1,96 @@
+{{- /*
+  Generate per-node VF setup scripts from ru_list.
+
+  Configures the active VF on each node with du_mac.
+  The RU has du_mac burned into its configuration and will ONLY accept
+  eCPRI frames from that MAC. Every node labelled srsran-worker=true
+  runs this setup so it is ready to host either an active or shadow DU-Low
+  — the controller decides at migration time which node is the target.
+
+  Each node's script:
+    1. ensure_numvfs — creates enough VFs on the PF
+    2. ip link set — assigns du_mac to the VF for each RU on this node
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+{{- $ruList := $ru_list_yaml.ru_list }}
+
+{{- /* Collect unique active nodes */ -}}
+{{- $nodes := list }}
+{{- range $ruList }}
+  {{- if not (has .node $nodes) }}
+    {{- $nodes = append $nodes .node }}
+  {{- end }}
+{{- end }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nic-vf-setup-scripts
+  namespace: srsran-migratable
+  labels:
+    app: nic-vf-setup
+data:
+  {{- range $node := $nodes }}
+
+  {{- /* Build list of VF assignments for this node (active role only) */ -}}
+  {{- $assignments := list }}
+  {{- range $ruList }}
+    {{- if eq .node $node }}
+      {{- $assignments = append $assignments (dict
+            "ru"    .name
+            "iface" .network_interface
+            "vf"    .dpdk_vf_index
+            "mac"   .du_mac) }}
+    {{- end }}
+  {{- end }}
+
+  {{- /* Compute max VF index needed per interface on this node */ -}}
+  {{- $ifaces := dict }}
+  {{- range $assignments }}
+    {{- $iface := .iface }}
+    {{- $needed := add1 (int .vf) }}
+    {{- $cur := default 0 (get $ifaces $iface) }}
+    {{- if gt $needed $cur }}
+      {{- $ifaces = set $ifaces $iface $needed }}
+    {{- end }}
+  {{- end }}
+
+  setup-{{ $node }}.sh: |
+    #!/bin/sh
+    # Auto-generated VF setup for node: {{ $node }}
+    # Generated from ru_list at Helm render time.
+    # Shadow VFs use the same du_mac as active — the RU has this MAC fixed
+    # in its config and will reject traffic from any other MAC.
+    set -e
+
+    log() { echo "[nic-vf-setup] $*"; }
+
+    ensure_numvfs() {
+      local iface=$1
+      local needed=$2
+      local sysf="/sys/class/net/${iface}/device/sriov_numvfs"
+      [ -f "$sysf" ] || { log "SKIP: $iface has no SR-IOV sysfs (not a DPDK port?)"; return; }
+      local cur
+      cur=$(cat "$sysf" 2>/dev/null || echo 0)
+      if [ "$cur" -lt "$needed" ]; then
+        log "Setting $iface sriov_numvfs: $cur -> $needed"
+        [ "$cur" -gt 0 ] && echo 0 > "$sysf"
+        echo "$needed" > "$sysf"
+        sleep 1
+      else
+        log "$iface already has $cur VFs (need $needed)"
+      fi
+    }
+
+    {{- range $iface, $needed := $ifaces }}
+    ensure_numvfs {{ $iface }} {{ $needed }}
+    {{- end }}
+
+    {{- range $assignments }}
+    # RU: {{ .ru }}
+    log "VF for RU {{ .ru }}: {{ .iface }} vf{{ .vf }} -> {{ .mac }}"
+    ip link set {{ .iface }} vf {{ .vf }} mac {{ .mac }} trust on spoofchk off
+    {{- end }}
+
+    log "VF setup complete for node {{ $node }}"
+  {{- end }}

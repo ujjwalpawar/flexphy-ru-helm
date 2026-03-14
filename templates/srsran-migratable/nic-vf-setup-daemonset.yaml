@@ -1,0 +1,149 @@
+{{- /*
+  Privileged DaemonSet that:
+    1. Runs ip link set to assign pre-configured MACs to active + shadow VFs
+    2. Discovers shadow VF PCI IDs from sysfs and publishes them to a
+       vf-pci-map-<node> ConfigMap so the orchestrator can look them up
+       without needing to know hardware PCI addresses statically.
+  Runs on all nodes labelled srsran-worker=true.
+*/ -}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nic-vf-setup
+  namespace: srsran-migratable
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nic-vf-setup
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nic-vf-setup
+subjects:
+- kind: ServiceAccount
+  name: nic-vf-setup
+  namespace: srsran-migratable
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: nic-vf-setup
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nic-vf-setup
+  namespace: srsran-migratable
+  labels:
+    app: nic-vf-setup
+spec:
+  selector:
+    matchLabels:
+      app: nic-vf-setup
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: nic-vf-setup
+    spec:
+      serviceAccountName: nic-vf-setup
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        srsran-worker: "true"
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+
+      volumes:
+        - name: scripts
+          configMap:
+            name: nic-vf-setup-scripts
+            defaultMode: 0755
+        - name: host-sys
+          hostPath:
+            path: /sys
+
+      initContainers:
+        - name: vf-setup
+          image: bitnami/kubectl:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NAMESPACE
+              value: srsran-migratable
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              NODE="${NODE_NAME}"
+              SCRIPT="/scripts/setup-${NODE}.sh"
+
+              if [ ! -f "$SCRIPT" ]; then
+                echo "[nic-vf-setup] No script for node $NODE — nothing to do"
+                exit 0
+              fi
+
+              echo "[nic-vf-setup] Running VF setup on $NODE"
+              sh "$SCRIPT"
+
+              # -------------------------------------------------------
+              # Discover VF PCI IDs from sysfs and publish to ConfigMap
+              # vf-pci-map-<node> so the orchestrator can look them up.
+              # Format: "<iface>.vf<N>" -> "<pci-addr>"
+              # -------------------------------------------------------
+              echo "[nic-vf-setup] Discovering VF PCI addresses on $NODE"
+              JSON="{"
+              SEP=""
+              for iface_path in /sys/class/net/*/device/virtfn*; do
+                [ -L "$iface_path" ] || continue
+                iface=$(echo "$iface_path" | awk -F'/' '{print $5}')
+                vf_name=$(basename "$iface_path")
+                vf_idx=$(echo "$vf_name" | sed 's/virtfn//')
+                pci=$(readlink "$iface_path" | xargs basename 2>/dev/null) || continue
+                key="${iface}.vf${vf_idx}"
+                JSON="${JSON}${SEP}\"${key}\":\"${pci}\""
+                SEP=","
+              done
+              JSON="${JSON}}"
+
+              echo "[nic-vf-setup] PCI map: $JSON"
+
+              # Write/update ConfigMap via kubectl
+              kubectl -n "${NAMESPACE}" get configmap "vf-pci-map-${NODE}" >/dev/null 2>&1 \
+                && kubectl -n "${NAMESPACE}" patch configmap "vf-pci-map-${NODE}" \
+                     --type merge -p "{\"data\":{\"pci_map\":${JSON}}}" \
+                || kubectl -n "${NAMESPACE}" create configmap "vf-pci-map-${NODE}" \
+                     --from-literal="pci_map=${JSON}"
+
+              echo "[nic-vf-setup] VF PCI map published to vf-pci-map-${NODE}"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: host-sys
+              mountPath: /sys
+
+      containers:
+        - name: pause
+          image: gcr.io/google_containers/pause:3.2
+          resources:
+            requests:
+              cpu: "1m"
+              memory: "4Mi"
+            limits:
+              cpu: "10m"
+              memory: "16Mi"
+
+      terminationGracePeriodSeconds: 10

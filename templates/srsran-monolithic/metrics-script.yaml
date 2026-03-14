@@ -1,0 +1,46 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-monolithic" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if eq $radio.name $desiredRadio.name }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}  
+{{ end -}}
+
+{{ if gt (len $radios) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-collect-script
+  namespace: srsran-monolithic
+data:
+  metrics-collect.py: |
+    import sys
+    import socket
+    import json
+
+    server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((sys.argv[1], int(sys.argv[2])))
+
+    while True:
+        line = server_socket.recv(1024**2).decode()
+        if not line:
+            continue
+        json_string = json.dumps(json.loads(line))
+        with open(sys.argv[3], "a") as f:
+            f.write(f'{json_string}\n')
+        print(json_string)
+{{- end }}

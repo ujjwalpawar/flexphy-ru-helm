@@ -1,0 +1,50 @@
+ru_ofh:
+  t1a_max_cp_dl: 470
+  t1a_min_cp_dl: 419
+  t1a_max_cp_ul: 430
+  t1a_min_cp_ul: 286
+  t1a_max_up: 390
+  t1a_min_up: 80
+  ta4_max: 500
+  ta4_min: 25
+  is_prach_cp_enabled: false
+  enable_lf_prach_slot_autoderivation: true
+  ignore_ecpri_payload_size: true
+  compr_method_ul: bfp
+  compr_bitwidth_ul: 9
+  compr_method_dl: bfp
+  compr_bitwidth_dl: 9
+  compr_method_prach: bfp
+  compr_bitwidth_prach: 9
+  enable_ul_static_compr_hdr: true
+  enable_dl_static_compr_hdr: true
+  iq_scaling: 12.8
+  cells:
+    - network_interface: __NETWORK_INTERFACE__
+      ru_mac_addr: __RU_MAC__
+      du_mac_addr: __DU_MAC__
+      vlan_tag_cp: __VLAN__
+      vlan_tag_up: __VLAN__
+      prach_port_id: [4, 5, 6, 7]
+      dl_port_id: [0, 1, 2, 3]
+      ul_port_id: [0, 1, 2, 3]
+
+hal:
+  eal_args: "--lcores (0-1)@(__CPU_CORES__) -a __NETWORK_INTERFACE__"
+
+log:
+  filename: stdout
+  all_level: error
+  phy_level: error
+
+expert_phy:
+  max_request_headroom_slots: 4
+  max_proc_delay: 4
+
+split6_network:
+  use_network: true
+  log_level: error
+  control_bind_ip: 0.0.0.0
+  control_port: 10001
+  slot_bind_ip: 0.0.0.0
+  slot_port: 10002

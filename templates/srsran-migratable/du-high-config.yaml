@@ -1,0 +1,77 @@
+{{- /*
+  Per-DU ConfigMap for:
+    - srsdu  (split-6 DU-High: MAC+RLC+Scheduler, speaks FAPI to proxy on localhost)
+    - srsdu_low_proxy  (migration proxy sidecar: forwards FAPI to active DU-Low,
+                        drives HARQ drain before live migration)
+
+  du.conf is rendered from du_high_template.yml at the chart root via tpl.
+  Variable fields supplied via context dict:
+    gnb_id, gnb_id_length, gnb_du_id  — from values.yaml / splitCUConf
+    cu_f1ap_ip                         — CU F1AP address (splitCUConf.f1ap_bind_ip)
+    arfcn, bandwidth, vlan             — per-radio from extra-config.yaml
+    neighbours                         — list of {addr} for other deployed DUs
+
+  Runtime sed (cu-pod.yaml) fills:
+    __DU_BIND_ADDR__  →  $POD_IP  (injected at container start)
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+
+{{- $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{- if eq $desiredRadio.type "srsran-migratable" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{- if eq $radio.name $desiredRadio.name }}
+        {{- $radios = append $radios $radio }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range $radio := $radios }}
+
+{{- /* Build neighbour list for this radio (all other deployed radios). */}}
+{{- $neighbours := list }}
+{{- range $other := $radios }}
+  {{- if ne $other.name $radio.name }}
+    {{- $addr := printf "srsran-mig-du-high-%s-rc.srsran-migratable.svc.cluster.local" ($other.name | lower) }}
+    {{- $neighbours = append $neighbours (dict "addr" $addr) }}
+  {{- end }}
+{{- end }}
+
+{{- $ctx := dict
+  "gnb_id"       $.Values.splitCUConf.gnb_id
+  "gnb_id_length" $.Values.splitCUConf.gnb_id_length
+  "gnb_du_id"    $radio.vlan
+  "cu_f1ap_ip"   $.Values.splitCUConf.f1ap_bind_ip
+  "arfcn"        $radio.arfcn
+  "bandwidth"    $radio.bandwidth
+  "vlan"         $radio.vlan
+  "neighbours"   $neighbours
+}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-mig-du-high-{{ $radio.name | lower }}-config
+  namespace: srsran-migratable
+data:
+  du.conf: |
+{{ tpl ($.Files.Get "du_high_template.yml") $ctx | indent 4 }}
+  proxy.conf: |
+    # DU-High connects to proxy on these ports (localhost sidecar).
+    control_listen_port: 9997
+    slot_listen_port: 9998
+
+    # Proxy forwards to active DU-Low via its Kubernetes service.
+    active_du_low_address: srsran-mig-du-low-{{ $radio.name | lower }}-svc.srsran-migratable.svc.cluster.local
+    active_control_port: 10001
+    active_slot_port: 10002
+
+    # Shadow DU-Low registration port (new DU-Low registers here during migration).
+    shadow_registration_port: 10005
+
+    # HARQ drain endpoint on DU-High (localhost — same pod).
+    srsgnb_drain_address: 127.0.0.1
+    srsgnb_drain_port: 9989
+    harq_drain_timeout_ms: 5000
+{{- end }}

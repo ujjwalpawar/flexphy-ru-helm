@@ -1,0 +1,131 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-split" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if and (eq $radio.name $desiredRadio.name) (eq $radio.vendor "vvdn") }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}  
+{{ end -}}
+
+{{ range $radio := $radios }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-{{ $radio.name | lower }}-config
+  namespace: srsran-split
+data:
+  du.conf: |
+    gnb_id: {{ $.Values.splitCUConf.gnb_id }}
+    gnb_du_id: {{ $radio.vlan }}
+    gnb_id_bit_length: {{ $.Values.splitCUConf.gnb_id_length }}
+    metrics:
+      enable_json: true
+      addr: {{ $.Values.splitCUConf.collector_ip }}
+      port: 55555
+      layers:
+        enable_app_usage: true
+        enable_sched: true
+        enable_rlc: true
+        enable_mac: true
+        enable_du_low: true
+        enable_ru: false
+      periodicity:
+        du_report_period: 1000
+    f1u:
+      socket:
+      - bind_addr: __DU_BIND_ADDR__
+    f1ap:
+      cu_cp_addr: {{ $.Values.splitCUConf.f1ap_bind_ip }}
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 295
+      t1a_max_up: 350
+      t1a_min_up: 95
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+      - network_interface: {{ $radio.dpdk_pci_id }}
+        ru_mac_addr: {{ $radio.ru_mac }}
+        du_mac_addr: {{ $radio.du_mac }}
+        vlan_tag_cp: {{ $radio.vlan }}
+        vlan_tag_up: {{ $radio.vlan }}
+        prach_port_id: [4, 5,6,7]
+        dl_port_id: [0, 1,2,3]
+        ul_port_id: [0, 1,2,3]
+    cell_cfg:
+      dl_arfcn: {{ $radio.arfcn }}
+      band: 77
+      channel_bandwidth_MHz: {{ $radio.bandwidth }}
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: {{ $radio.vlan }}
+      sector_id: {{ $radio.vlan }}
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: {{ $radio.vlan }}
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+       eal_args: "--lcores (0-1)@({{ $radio.cpu_cores_p2 }}) -a {{ $radio.dpdk_pci_id }}"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+    expert_execution:
+      affinities:
+        ru_timing_cpu: {{ $radio.cpu_cores_p1 }}
+      threads:
+        upper_phy:
+          pdsch_processor_type: flexible
+          nof_pusch_decoder_threads: 1
+          pdsch_cb_batch_length: auto
+          nof_ul_threads: 2                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess uplink.
+          nof_dl_threads: 4                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess downlink.
+        ofh:
+          enable_dl_parallelization: true         # Optional BOOLEAN (true). Sets the Open Fronthaul downlink parallelization flag. Supported: [false, true].
+
+---
+{{ end }}

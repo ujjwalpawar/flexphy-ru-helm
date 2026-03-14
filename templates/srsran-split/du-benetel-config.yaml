@@ -1,0 +1,139 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-split" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if and (eq $radio.name $desiredRadio.name) (eq $radio.vendor "benetel") }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}  
+{{ end -}}
+
+{{ range $radio := $radios }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-{{ $radio.name | lower }}-config
+  namespace: srsran-split
+data:
+  du.conf: |
+    gnb_id: {{ $.Values.splitCUConf.gnb_id }}
+    gnb_du_id: {{ $radio.vlan }}
+    gnb_id_bit_length: {{ $.Values.splitCUConf.gnb_id_length }}
+    metrics:
+       enable_json_metrics: true
+       addr: 127.0.0.1
+       port: 12346
+    remote_control:
+       bind_addr: 0.0.0.0
+       port: 55555
+       enabled: true
+    f1u:
+      socket:
+        - bind_addr: __DU_BIND_ADDR__
+    f1ap:
+      cu_cp_addr: {{ $.Values.splitCUConf.f1ap_bind_ip }}
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 535
+      t1a_min_cp_dl: 286
+      t1a_max_cp_ul: 535
+      t1a_min_cp_ul: 286
+      t1a_max_up: 390
+      t1a_min_up: 80
+      ta4_max: 500
+      ta4_min: 25
+      is_prach_cp_enabled: false
+      ignore_ecpri_payload_size: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 10
+      cells:
+      - network_interface: {{ $radio.dpdk_pci_id }}
+        ru_mac_addr: {{ $radio.ru_mac }}
+        du_mac_addr: {{ $radio.du_mac }}
+        vlan_tag_cp: {{ $radio.vlan }}
+        vlan_tag_up: {{ $radio.vlan }}
+        prach_port_id: [4, 5, 6,7]
+        dl_port_id: [0, 1,2,3]
+        ul_port_id: [0, 1,2,3]
+    cell_cfg:
+      positioning:
+        signal: srs
+        neighbours:
+{{- range $neighbor := $radios }}
+{{- if ne $neighbor.name $radio.name }}
+          - addr: srsran-split-{{ $neighbor.name | lower }}-rc.srsran-split.svc.cluster.local
+            port: 55555
+{{- end }}
+{{- end }}
+      dl_arfcn: {{ $radio.arfcn }}
+      band: 77
+      channel_bandwidth_MHz: {{ $radio.bandwidth }}
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: {{ $radio.vlan }}
+      sector_id: {{ $radio.vlan }}
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+      srs:
+        srs_period_ms: 10
+        srs_max_nof_sym_per_slot: 2
+        srs_nof_sym_per_resource: 1
+        srs_tx_comb: 2
+        srs_cyclic_shift_reuse: 1
+        srs_sequence_id_reuse: 1
+      sched_expert_cfg:
+        ta_sched_cfg:
+            ta_measurement_slot_period: 160
+            ta_cmd_offset_threshold: -1
+            ta_target: 1
+            ta_update_measurement_ul_sinr_threshold: 10
+      prach:
+        prach_config_index: 7
+        prach_root_sequence_index: {{ $radio.vlan }}
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+        preamble_trans_max: 4
+      pdsch:
+        olla_target_bler: 0.25
+      tdd_ul_dl_cfg:
+        dl_ul_tx_period: 10
+        nof_dl_slots: 7
+        nof_dl_symbols: 6
+        nof_ul_slots: 2
+        nof_ul_symbols: 4
+    expert_phy:
+      allow_request_on_empty_uplink_slot: true
+    log:
+      filename: stdout
+      all_level: error
+      config_level: debug
+    hal:
+       eal_args: "--lcores (0-1)@({{ $radio.cpu_cores_p2 }}) -a {{ $radio.dpdk_pci_id }}"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+    expert_execution:
+      affinities:
+        ru_timing_cpu: {{ $radio.cpu_cores_p1 }}
+
+---
+{{ end }}

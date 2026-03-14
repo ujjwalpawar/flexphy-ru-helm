@@ -1,0 +1,48 @@
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+{{- $radios := list -}}
+{{- range $desiredRadio := .Values.desiredRadios -}}
+  {{- if eq $desiredRadio.type "srsran-migratable" -}}
+    {{- range $radio := $ru_list_yaml.ru_list -}}
+      {{- if eq $radio.name $desiredRadio.name -}}
+        {{- $radios = append $radios $radio -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if gt (len $radios) 0 }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: migration-orchestrator
+  namespace: srsran-migratable
+---
+# The orchestrator needs to create/delete/patch pods and configmaps for shadow DU-Low management.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: migration-orchestrator
+  namespace: srsran-migratable
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "create", "delete", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: migration-orchestrator
+  namespace: srsran-migratable
+subjects:
+- kind: ServiceAccount
+  name: migration-orchestrator
+  namespace: srsran-migratable
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: migration-orchestrator
+{{- end }}

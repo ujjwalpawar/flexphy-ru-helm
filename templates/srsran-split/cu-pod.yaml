@@ -1,0 +1,105 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-split" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if eq $radio.name $desiredRadio.name }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end -}}
+
+{{ if gt (len $radios) 0 }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-cu
+  namespace: srsran-split
+  labels:
+    app: srsran-split-cu
+spec:
+  hostNetwork: true
+  nodeSelector:
+    kubernetes.io/hostname: {{ .Values.splitCUConf.node }}
+  containers:
+  - name: srsran
+    image: ujjwal1997/srsran:25.10
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      START_TIME="$(date +%Y%m%d_%H%M%S)" &&
+      PCAP_DIR="/pcap/cu_${START_TIME}" &&
+      mkdir -p "$PCAP_DIR" &&
+      sed "s/__CU_BIND_ADDR__/$POD_IP/g" /config/cu.conf > /tmp/cu.conf &&
+      sed -i "s|__PCAP_DIR__|${PCAP_DIR}|g" /tmp/cu.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srscu -c /tmp/cu.conf cu_cp security --nea_pref_list=nea0,nea1,nea3,nea2
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    - mountPath: /pcap
+      name: cu-pcap
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: {{ .Values.splitCUConf.cores | quote }}
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    env:
+      - name: WS_URL
+        value: "ws://127.0.0.1:55555"
+    args:
+    - apt update &&
+      apt install -y python3 && apt install -y python3-pip && pip3 install websocket-client  --break-system-packages &&
+      python3 /etc/scripts/metrics-collect.py 10.105.253.161 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect-cu
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-cu-config
+      items:
+      - key: cu.conf
+        path: cu.conf
+  - name: metrics-collect-cu
+    configMap:
+      name: metrics-collect-script-cu
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+  - name: cu-pcap
+    hostPath:
+      path: {{ .Values.cuPcapHostPath | default "/home/netsys/netdt_data" | quote }}
+      type: DirectoryOrCreate
+
+---
+{{- end }}

@@ -1,0 +1,117 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Apply this template to only the desired radios, making sure to also
+  pickup the necessary config for the radio from the outside source.
+*/}}
+{{- range $desiredRadio := .Values.desiredRadios }}
+{{- range $radio := $ru_list_yaml.ru_list }}
+{{ if and (eq $radio.name $desiredRadio.name) (eq $desiredRadio.type "srsran-monolithic") (eq $radio.vendor "vvdn")}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-monolithic-{{ $desiredRadio.name | lower }}-config
+  namespace: srsran-monolithic
+data:
+  gnb.conf: |
+    # This example configuration outlines how to configure the srsRAN Project CU/DU to use an O-RU and split 7.2. This is specifically for use
+    # with a VVDN RU. This config will create a single TDD cell transmitting in band 78, with 100 MHz bandwidth and 30 kHz sub-carrier-spacing.
+    # The parameters used to configure the RU are found in the `ru_ofh` sub-section. This configuration makes used of the OFH Lib from SRS to enable split 7.2.
+
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+
+    cu_cp:
+      amf:
+        addr: {{ .Values.amf_ip }}
+        port: 38412
+        bind_addr: __GNB_BIND_ADDR__
+        supported_tracking_areas:
+          - tac: 1
+            plmn_list:
+              - plmn: "99999"
+                tai_slice_support_list:
+                  - sst: 1
+
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 429
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: {{ $radio.dpdk_pci_id }}
+          ru_mac_addr: {{ $radio.ru_mac }}
+          du_mac_addr: {{ $radio.du_mac }}
+          vlan_tag_cp: {{ $radio.vlan }}
+          vlan_tag_up: {{ $radio.vlan }}
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+
+    cell_cfg:
+      dl_arfcn: {{ $radio.arfcn }}
+      band: 77
+      channel_bandwidth_MHz: {{ $radio.bandwidth }}
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: {{ $radio.vlan }}
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 0
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+      ngap_level: info
+
+    hal:
+      eal_args: "--lcores ({{ $radio.cpu_cores_p1 }})@({{ $radio.cpu_cores_p2 }}) -a {{ $radio.dpdk_pci_id }}"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+      ngap_enable: false
+      ngap_filename: /tmp/gnb_ngap.pcap
+---
+{{- end }}
+{{- end }}
+{{- end }}

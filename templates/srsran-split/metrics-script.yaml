@@ -1,0 +1,55 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") -*/}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml -*/}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{- $radios := list -}}
+{{- range $desiredRadio := .Values.desiredRadios -}}
+  {{- if eq $desiredRadio.type "srsran-split" -}}
+    {{- range $radio := $ru_list_yaml.ru_list -}}
+      {{- if eq $radio.name $desiredRadio.name -}}
+        {{- $radios = append $radios $radio -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if gt (len $radios) 0 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-collect-script
+  namespace: srsran-split
+data:
+  metrics-collect.py: |
+    import sys
+    import socket
+    import json
+
+    bind_ip = sys.argv[1]
+    bind_port = int(sys.argv[2])
+    forward_ip = sys.argv[3]
+    forward_port = int(sys.argv[4])
+    log_path = sys.argv[5] if len(sys.argv) > 5 else None
+
+    server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((bind_ip, bind_port))
+    forward_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    print(f"Listening for metrics on {bind_ip}:{bind_port} and forwarding to {forward_ip}:{forward_port}")
+    while True:
+        line = server_socket.recv(1024**2).decode()
+        if not line:
+            continue
+        json_string = json.dumps(json.loads(line))
+        forward_socket.sendto(json_string.encode(), (forward_ip, forward_port))
+        if log_path:
+            with open(log_path, "a") as f:
+                f.write(f'{json_string}\n')
+        print(json_string)
+{{- end }}

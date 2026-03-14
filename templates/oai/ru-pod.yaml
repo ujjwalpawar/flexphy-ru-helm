@@ -1,0 +1,81 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Apply this template to only the desired radios, making sure to also
+  pickup the necessary config for the radio from the outside source.
+*/}}
+{{- range $desiredRadio := .Values.desiredRadios }}
+{{- range $radio := $ru_list_yaml.ru_list }}
+{{ if and (eq $radio.name $desiredRadio.name) (eq $desiredRadio.type "oai") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oai-{{ $desiredRadio.name | lower }}
+  namespace: oai
+  labels:
+    app: oai
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: {{ $radio.node | quote }}
+  containers:
+  - name: oai-gnb
+    image: ujjwal1997/ios-mcn-oai-e2:latest
+    command: ["bash", "-c"]
+    args:
+    - sed "s/__GNB_BIND_ADDR__/$POD_IP/g" /config/gnb.conf > /tmp/gnb.conf &&
+      cd /workspace/openairinterface5g/cmake_targets/ran_build/build &&
+      taskset -c $CPU_CORES chrt -f 99  ./nr-softmodem -O /tmp/gnb.conf
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+  - name: flexric
+    image: ujjwal1997/ios-mcn-flexric:latest
+    command: ["bash", "-c"]
+    args:
+    - cd /workspace/openairinterface5g/openair2/E2AP/flexric/build/examples/ric &&
+      ./nearRT-RIC
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: oai-{{ $desiredRadio.name | lower }}-config
+      items:
+      - key: gnb.conf
+        path: gnb.conf
+---
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,1532 @@
+---
+# Source: new-ru-deploy/templates/srsran-split/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: srsran-split-vvdn
+---
+# Source: new-ru-deploy/templates/srsran-split/cu-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-cu-config
+  namespace: srsran-split-vvdn
+data:
+  cu.conf: |
+    gnb_id_bit_length: 22
+    gnb_id: 1
+    log:
+      filename: stdout
+      all_level: error
+      ngap_level: info
+    pcap:
+      f1ap_filename: /tmp/gnb_f1ap.pcap
+      f1ap_enable: true
+      e1ap_filename: /tmp/gnb_e1ap.pcap
+      e1ap_enable: true
+    cu_cp:
+      max_nof_dus: 8
+      amf:
+        addr: 172.16.6.89
+        port: 38412
+        bind_addr: __CU_BIND_ADDR__
+        sctp_nodelay: true
+        supported_tracking_areas:
+        - tac: 1
+          plmn_list:
+          - plmn: "99999"
+            tai_slice_support_list:
+            - sst: 1
+      f1ap:
+        bind_addr: __CU_BIND_ADDR__
+      mobility:
+        trigger_handover_from_measurements: true
+        cells:
+        - nr_cell_id: 16392
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16396
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16404
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16393
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16397
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16405
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16402
+          - nr_cell_id: 16406
+        - nr_cell_id: 16402
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16406
+        - nr_cell_id: 16406
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16392
+          - nr_cell_id: 16396
+          - nr_cell_id: 16404
+          - nr_cell_id: 16393
+          - nr_cell_id: 16397
+          - nr_cell_id: 16405
+          - nr_cell_id: 16402
+        report_configs:
+        - report_cfg_id: 1
+          report_type: periodical
+          event_triggered_report_type: a3
+          report_interval_ms: 1024
+        - report_cfg_id: 2
+          report_type: event_triggered
+          event_triggered_report_type: a3
+          meas_trigger_quantity: rsrp
+          meas_trigger_quantity_offset_db: 2
+          hysteresis_db: 0
+          time_to_trigger_ms: 100
+          report_interval_ms: 1024
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-mlb2-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 8
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:09.0
+          ru_mac_addr: 98:ae:71:04:90:e3
+          du_mac_addr: 00:11:22:33:33:99
+          vlan_tag_cp: 8
+          vlan_tag_up: 8
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 8
+      sector_id: 8
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 8
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (14-15)@(16-25) -a 0000:86:09.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-mlb3-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 12
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:09.0
+          ru_mac_addr: 98:ae:71:04:90:dd
+          du_mac_addr: 00:11:22:33:44:99
+          vlan_tag_cp: 12
+          vlan_tag_up: 12
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 12
+      sector_id: 12
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 12
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (14-15)@(16-25) -a 0000:86:09.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-mlb5-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 20
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:09.0
+          ru_mac_addr: 98:ae:71:04:90:e1
+          du_mac_addr: 00:11:22:33:66:99
+          vlan_tag_cp: 20
+          vlan_tag_up: 20
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 20
+      sector_id: 20
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 20
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (14-15)@(16-25) -a 0000:86:09.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-apt1-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 9
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:11.0
+          ru_mac_addr: 98:ae:71:04:90:e7
+          du_mac_addr: 00:11:22:33:77:99
+          vlan_tag_cp: 9
+          vlan_tag_up: 9
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 9
+      sector_id: 9
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 9
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (26-27)@(28-40) -a 0000:86:11.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-apt2-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 13
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:11.0
+          ru_mac_addr: 98:ae:71:04:90:db
+          du_mac_addr: 00:11:22:33:88:99
+          vlan_tag_cp: 13
+          vlan_tag_up: 13
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 13
+      sector_id: 13
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 13
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (26-27)@(28-40) -a 0000:86:11.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-apt4-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 21
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:11.0
+          ru_mac_addr: 98:ae:71:04:90:d9
+          du_mac_addr: 00:11:22:33:aa:99
+          vlan_tag_cp: 21
+          vlan_tag_up: 21
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 21
+      sector_id: 21
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 21
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (26-27)@(28-37) -a 0000:86:11.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-hrb1-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 18
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:19.0
+          ru_mac_addr: 98:ae:71:04:90:df
+          du_mac_addr: 00:11:22:33:bb:99
+          vlan_tag_cp: 18
+          vlan_tag_up: 18
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 18
+      sector_id: 18
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 18
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (38-39)@(40-49) -a 0000:86:19.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-hrb2-config
+  namespace: srsran-split-vvdn
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 22
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json_metrics: true
+      addr: 127.0.0.1
+      port: 55555
+    f1ap:
+      cu_cp_addr: __CU_ADDR__
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 285
+      t1a_max_up: 350
+      t1a_min_up: 125
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+        - network_interface: 0000:86:19.0
+          ru_mac_addr: 98:ae:71:04:90:e5
+          du_mac_addr: 00:11:22:33:cc:99
+          vlan_tag_cp: 22
+          vlan_tag_up: 22
+          prach_port_id: [4, 5, 6, 7]
+          dl_port_id: [0, 1, 2, 3]
+          ul_port_id: [0, 1, 2, 3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 22
+      sector_id: 22
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+    #    max_ue_mcs: 2
+    #    fixed_rar_mcs: 0
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 22
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+      eal_args: "--lcores (38-39)@(40-49) -a 0000:86:19.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+---
+# Source: new-ru-deploy/templates/srsran-split/metrics-script.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-collect-script
+  namespace: srsran-split-vvdn
+data:
+  metrics-collect.py: |
+    import sys
+    import socket
+    import json
+
+    server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((sys.argv[1], int(sys.argv[2])))
+
+    while True:
+        line = server_socket.recv(1024**2).decode()
+        if not line:
+            continue
+        json_string = json.dumps(json.loads(line))
+        with open(sys.argv[3], "a") as f:
+            f.write(f'{json_string}\n')
+        print(json_string)
+---
+# Source: new-ru-deploy/templates/srsran-split/cu-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-split-cu
+  namespace: srsran-split-vvdn
+spec:
+  ports:
+  - port: 38472
+    targetPort: 38472
+    protocol: SCTP
+  selector:
+    app: srsran-split-cu
+---
+# Source: new-ru-deploy/templates/srsran-split/cu-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-cu
+  namespace: srsran-split-vvdn
+  labels:
+    app: srsran-split-cu
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-worker3
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__CU_BIND_ADDR__/$POD_IP/g" /config/cu.conf > /tmp/cu.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srscu -c /tmp/cu.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "26-49"
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-cu-config
+      items:
+      - key: cu.conf
+        path: cu.conf
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-mlb2
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker2"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "14-25"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-mlb2-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-mlb3
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker3"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "14-25"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-mlb3-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-mlb5
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker5"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "14-25"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-mlb5-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-apt1
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker2"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "26-39"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-apt1-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-apt2
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker3"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "26-39"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-apt2-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-apt4
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker5"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "26-37"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-apt4-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-hrb1
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker4"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "38-49"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-hrb1-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: new-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-hrb2
+  namespace: srsran-split-vvdn
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker5"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p $SRSRAN_SPLIT_CU_SERVICE_PORT $SRSRAN_SPLIT_CU_SERVICE_HOST | grep "$SRSRAN_SPLIT_CU_SERVICE_PORT/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/$SRSRAN_SPLIT_CU_SERVICE_HOST/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "38-49"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-hrb2-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py

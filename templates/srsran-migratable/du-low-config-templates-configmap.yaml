@@ -1,0 +1,23 @@
+{{- /*
+  DU-Low config file templates for the migration orchestrator.
+  Both files are stored here as ConfigMap data so they can be updated
+  without rebuilding the orchestrator Docker image.
+
+  du_low_shadow_template.yml  — used when pre-warming a shadow DU-Low
+                                (start_in_shadow_mode: true, migration section present)
+  du_low_active_template.yml  — used for cold-start deployments
+                                (no migration section, normal active DU config)
+
+  The orchestrator fills in hardware-specific fields at runtime:
+    network_interface, ru_mac_addr, du_mac_addr, hal.eal_args, proxy_address
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: du-low-config-templates
+  namespace: srsran-migratable
+data:
+  du_low_shadow_template.yml: |
+{{ $.Files.Get "du_low_shadow_template.yml" | indent 4 }}
+  du_low_active_template.yml: |
+{{ $.Files.Get "du_low_active_template.yml" | indent 4 }}

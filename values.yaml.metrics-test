@@ -1,0 +1,3 @@
+desiredRadios:
+- name: "DSB1"
+  type: srsran-split

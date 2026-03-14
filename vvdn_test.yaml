@@ -1,0 +1,576 @@
+---
+# Source: may-ru-deploy/templates/srsran-split/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: srsran-split
+---
+# Source: may-ru-deploy/templates/srsran-split/cu-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-cu-config
+  namespace: srsran-split
+data:
+  cu.conf: |
+    gnb_id_bit_length: 22
+    gnb_id: 1
+    log:
+      filename: stdout
+      all_level: error
+      ngap_level: info
+      config_level: debug
+      cu_level: debug
+    pcap:
+      f1ap_filename: /tmp/gnb_f1ap.pcap
+      f1ap_enable: true
+      e1ap_filename: /tmp/gnb_e1ap.pcap
+      e1ap_enable: true
+      ngap_filename: /tmp/gnb_ngap.pcap
+      ngap_enable: true
+    cu_cp:
+      max_nof_dus: 2
+      request_pdu_session_timeout: 1
+      amf:
+        addr: 172.30.129.35
+        port: 38412
+        bind_addr: 10.0.0.1
+        sctp_nodelay: false
+        supported_tracking_areas:
+        - tac: 1
+          plmn_list:
+          - plmn: "99999"
+            tai_slice_support_list:
+            - sst: 1
+      f1ap:
+        bind_addr: 10.0.0.1
+      rrc:
+        force_reestablishment_fallback: true
+        rrc_procedure_timeout_ms: 500
+      mobility:
+        trigger_handover_from_measurements: true
+        cells:
+        - nr_cell_id: 16407
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16396
+        - nr_cell_id: 16396
+          periodic_report_cfg_id: 1
+          ncells:
+          - nr_cell_id: 16407
+        report_configs:
+        - report_cfg_id: 1
+          report_type: periodical
+          event_triggered_report_type: a3
+          meas_trigger_quantity: rsrp
+          meas_trigger_quantity_offset_db: 2
+          hysteresis_db: 2
+          report_interval_ms: 480
+          time_to_trigger_ms: 0
+        - report_cfg_id: 2
+          report_type: event_triggered
+          event_triggered_report_type: a3
+          meas_trigger_quantity: rsrp
+          meas_trigger_quantity_offset_db: 2
+          hysteresis_db: 0
+          time_to_trigger_ms: 100
+          report_interval_ms: 1024
+    cu_up:
+      ngu:
+        gtpu:
+          queue_size: 8192
+          batch_size: 512
+      f1u:
+        socket:
+        - bind_addr: 172.30.129.57
+          ext_addr: auto
+          udp:
+            max_rx_msgs: 512
+            pool_threshold: 1
+    metrics:
+      enable_log: false
+      enable_json: true
+      addr: 10.233.29.41
+      port: 55555
+      layers:
+        enable_app_usage: true
+        enable_pdcp: true
+      periodicity:
+        cu_cp_report_period: 1000
+---
+# Source: may-ru-deploy/templates/srsran-split/du-benetel-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-inf1-config
+  namespace: srsran-split
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 23
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json: true
+      addr: 10.233.29.41
+      port: 55555
+      layers:
+        enable_app_usage: true
+        enable_sched: true
+        enable_rlc: true
+        enable_mac: true
+        enable_du_low: true
+        enable_ru: false
+      periodicity:
+        du_report_period: 1000
+    f1u:
+      socket:
+      - bind_addr: __DU_BIND_ADDR__
+    f1ap:
+      cu_cp_addr: 10.0.0.1
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 535
+      t1a_min_cp_dl: 286
+      t1a_max_cp_ul: 535
+      t1a_min_cp_ul: 286
+      t1a_max_up: 390
+      t1a_min_up: 80
+      ta4_max: 500
+      ta4_min: 25
+      is_prach_cp_enabled: false
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+      - network_interface: 0000:86:01.0
+        ru_mac_addr: 70:b3:d5:e1:5f:ec
+        du_mac_addr: 00:11:22:33:88:88
+        vlan_tag_cp: 23
+        vlan_tag_up: 23
+        prach_port_id: [4, 5]
+        dl_port_id: [0, 1,2,3]
+        ul_port_id: [0, 1]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 23
+      sector_id: 23
+      nof_antennas_dl: 4
+      nof_antennas_ul: 2
+      prach:
+        prach_config_index: 7
+        prach_root_sequence_index: 23
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+        preamble_trans_max: 4
+      tdd_ul_dl_cfg:
+        dl_ul_tx_period: 10
+        nof_dl_slots: 7
+        nof_dl_symbols: 6
+        nof_ul_slots: 2
+        nof_ul_symbols: 4
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+       eal_args: "--lcores (0-1)@(2-13) -a 0000:86:01.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+    expert_execution:
+      affinities:
+        ru_timing_cpu: 13
+      threads:
+        upper_phy:
+          pdsch_processor_type: flexible
+          nof_pusch_decoder_threads: 1
+          pdsch_cb_batch_length: auto
+          nof_ul_threads: 2                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess uplink.
+          nof_dl_threads: 4                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess downlink.
+        ofh:
+          enable_dl_parallelization: true         # Optional BOOLEAN (true). Sets the Open Fronthaul downlink parallelization flag. Supported: [false, true].
+---
+# Source: may-ru-deploy/templates/srsran-split/du-vvdn-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-split-mlb3-config
+  namespace: srsran-split
+data:
+  du.conf: |
+    gnb_id: 1
+    gnb_du_id: 12
+    gnb_id_bit_length: 22
+    metrics:
+      enable_json: true
+      addr: 10.233.29.41
+      port: 55555
+      layers:
+        enable_app_usage: true
+        enable_sched: true
+        enable_rlc: true
+        enable_mac: true
+        enable_du_low: true
+        enable_ru: false
+      periodicity:
+        du_report_period: 1000
+    f1u:
+      socket:
+      - bind_addr: __DU_BIND_ADDR__
+    f1ap:
+      cu_cp_addr: 10.0.0.1
+      bind_addr: __DU_BIND_ADDR__
+    ru_ofh:
+      t1a_max_cp_dl: 470
+      t1a_min_cp_dl: 285
+      t1a_max_cp_ul: 390
+      t1a_min_cp_ul: 295
+      t1a_max_up: 350
+      t1a_min_up: 95
+      ta4_max: 180
+      ta4_min: 50
+      is_prach_cp_enabled: true
+      compr_method_ul: bfp
+      compr_bitwidth_ul: 9
+      compr_method_dl: bfp
+      compr_bitwidth_dl: 9
+      compr_method_prach: bfp
+      compr_bitwidth_prach: 9
+      enable_ul_static_compr_hdr: true
+      enable_dl_static_compr_hdr: true
+      iq_scaling: 5.5
+      cells:
+      - network_interface: 0000:86:09.0
+        ru_mac_addr: 98:ae:71:04:90:dd
+        du_mac_addr: 00:11:22:33:44:99
+        vlan_tag_cp: 12
+        vlan_tag_up: 12
+        prach_port_id: [4, 5,6,7]
+        dl_port_id: [0, 1,2,3]
+        ul_port_id: [0, 1,2,3]
+    cell_cfg:
+      dl_arfcn: 660000
+      band: 77
+      channel_bandwidth_MHz: 100
+      common_scs: 30
+      plmn: "99999"
+      tac: 1
+      pci: 12
+      sector_id: 12
+      nof_antennas_dl: 4
+      nof_antennas_ul: 4
+      prach:
+        prach_config_index: 159
+        prach_root_sequence_index: 12
+        zero_correlation_zone: 0
+        prach_frequency_start: 0
+      pucch:
+        sr_period_ms: 20
+        f0_or_f1_nof_cell_res_sr: 15
+        f2_or_f3_or_f4_nof_cell_res_csi: 15
+      csi:
+        csi_rs_period: 40
+      pusch:
+        dmrs_additional_position: 2
+      tdd_ul_dl_cfg:
+        nof_dl_symbols: 6
+        nof_ul_symbols: 2
+        nof_dl_slots: 7
+        nof_ul_slots: 2
+    log:
+      filename: stdout
+      all_level: error
+    hal:
+       eal_args: "--lcores (0-1)@(14-24) -a 0000:86:09.0"
+    pcap:
+      mac_enable: false
+      mac_filename: /tmp/gnb_mac.pcap
+    expert_execution:
+      affinities:
+        ru_timing_cpu: 25
+      threads:
+        upper_phy:
+          pdsch_processor_type: flexible
+          nof_pusch_decoder_threads: 1
+          pdsch_cb_batch_length: auto
+          nof_ul_threads: 2                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess uplink.
+          nof_dl_threads: 4                       # Optional UINT (1). Sets the number of upprt PHY threads to proccess downlink.
+        ofh:
+          enable_dl_parallelization: true         # Optional BOOLEAN (true). Sets the Open Fronthaul downlink parallelization flag. Supported: [false, true].
+---
+# Source: may-ru-deploy/templates/srsran-split/metrics-script.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-collect-script
+  namespace: srsran-split
+data:
+  metrics-collect.py: |
+    import sys
+    import socket
+    import json
+    listen_port = int(sys.argv[2])
+    forward_host = sys.argv[3]
+    forward_port = listen_port
+    server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind((sys.argv[1], int(sys.argv[2])))
+    print("Starting collector")
+    forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    while True:
+        data, addr = server_socket.recvfrom(1024**2)
+        line = data.decode()
+        if not line:
+            continue
+        json_string = json.dumps(json.loads(line))
+        with open(sys.argv[4], "a") as f:
+            f.write(f'{json_string}\n')
+        print(json_string)
+        forward_socket.sendto(data, (forward_host, forward_port))
+---
+# Source: may-ru-deploy/templates/srsran-split/cu-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsran-split-cu
+  namespace: srsran-split
+spec:
+  ports:
+  - port: 38472
+    targetPort: 38472
+    protocol: SCTP
+  selector:
+    app: srsran-split-cu
+---
+# Source: may-ru-deploy/templates/srsran-split/cu-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-cu
+  namespace: srsran-split
+  labels:
+    app: srsran-split-cu
+spec:
+  hostNetwork: true
+  nodeSelector:
+    kubernetes.io/hostname: k8s-worker1
+  containers:
+  - name: srsran
+    image: ujjwal1997/srsran:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__CU_BIND_ADDR__/$POD_IP/g" /config/cu.conf > /tmp/cu.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srscu -c /tmp/cu.conf cu_cp security --nea_pref_list=nea2,nea1,nea3,nea0
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "26-49"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 10.233.29.41 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-cu-config
+      items:
+      - key: cu.conf
+        path: cu.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: may-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-inf1
+  namespace: srsran-split
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker6"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p 38472 10.0.0.1 | grep "38472/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ujjwal1997/srsran:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/10.0.0.1/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "2-13"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 10.233.29.41 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-inf1-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+# Source: may-ru-deploy/templates/srsran-split/du-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-split-mlb3
+  namespace: srsran-split
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "k8s-worker3"
+  initContainers:
+  - name: check-cu-up
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y nmap &&
+      until nmap -sY -p 38472 10.0.0.1 | grep "38472/sctp open" &> /dev/null; do echo "Waiting for CU to be up..."; sleep 2; done
+  containers:
+  - name: srsran
+    image: ujjwal1997/srsran:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      sed -i "s/__CU_ADDR__/10.0.0.1/g" /tmp/du.conf &&
+      taskset -c $CPU_CORES chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "8Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: "14-25"
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 10.233.29.41 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-split-mlb3-config
+      items:
+      - key: du.conf
+        path: du.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py

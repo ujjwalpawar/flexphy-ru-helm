@@ -1,0 +1,66 @@
+{{- /*
+  CU ConfigMap for the migratable split-6 deployment.
+  One CU serves all DU-High instances in this namespace.
+
+  cu.conf is rendered from cu_template.yml at the chart root via tpl.
+  Variable fields supplied via context dict:
+    gnb_id, gnb_id_length          — from splitCUConf
+    amf_ip, amf_bind_ip            — AMF address and local bind
+    f1ap_bind_ip, f1u_bind_ip      — CU bind addresses
+    max_nof_dus                    — count of deployed radios
+    cells                          — list of {nr_cell_id, ncells[]} for mobility
+
+  Runtime sed (cu-pod.yaml) fills:
+    __PCAP_DIR__  →  timestamped pcap directory
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+
+{{- if ne (int .Values.splitCUConf.gnb_id_length) 22 }}
+  {{ fail "splitCUConf:gnb_id_length must be 22 for srsran-migratable templates" }}
+{{- end }}
+
+{{- $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{- if eq $desiredRadio.type "srsran-migratable" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{- if eq $radio.name $desiredRadio.name }}
+        {{- $radios = append $radios $radio }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if gt (len $radios) 0 }}
+
+{{- /* Build per-cell mobility list with nr_cell_id and neighbour nr_cell_ids. */}}
+{{- $cells := list }}
+{{- range $r := $radios }}
+  {{- $nr_cell_id := add (mul (int $.Values.splitCUConf.gnb_id) 16384) ($r.vlan | int) }}
+  {{- $ncells := list }}
+  {{- range $other := $radios }}
+    {{- if ne $other.name $r.name }}
+      {{- $ncells = append $ncells (add (mul (int $.Values.splitCUConf.gnb_id) 16384) ($other.vlan | int)) }}
+    {{- end }}
+  {{- end }}
+  {{- $cells = append $cells (dict "nr_cell_id" $nr_cell_id "ncells" $ncells) }}
+{{- end }}
+
+{{- $ctx := dict
+  "gnb_id"        .Values.splitCUConf.gnb_id
+  "gnb_id_length" .Values.splitCUConf.gnb_id_length
+  "amf_ip"        .Values.amf_ip
+  "amf_bind_ip"   .Values.splitCUConf.amf_bind_ip
+  "f1ap_bind_ip"  .Values.splitCUConf.f1ap_bind_ip
+  "f1u_bind_ip"   .Values.splitCUConf.f1u_bind_ip
+  "max_nof_dus"   (len $radios)
+  "cells"         $cells
+}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: srsran-mig-cu-config
+  namespace: srsran-migratable
+data:
+  cu.conf: |
+{{ tpl ($.Files.Get "cu_template.yml") $ctx | indent 4 }}
+{{- end }}

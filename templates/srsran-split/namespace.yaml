@@ -1,0 +1,27 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Create a list of all the RUs that should be included in this split
+*/ -}}
+{{ $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{ if eq $desiredRadio.type "srsran-split" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{ if eq $radio.name $desiredRadio.name }}
+        {{ $radios = append $radios $radio }}
+      {{ end }}
+    {{ end }}
+  {{ end }}  
+{{ end -}}
+
+{{ if gt (len $radios) 0 }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: srsran-split
+{{ end }}

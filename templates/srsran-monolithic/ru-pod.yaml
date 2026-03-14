@@ -1,0 +1,104 @@
+{{- /*
+  Read in the RU configuration information from the configmap
+*/}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml }}
+{{/*- $configmap := (lookup "v1" "ConfigMap" "default" "ru-testconfig") */}}
+{{/*- $ru_list_yaml := get $configmap.data "rulist.yaml" | fromYaml */}}
+
+{{- /*
+  Apply this template to only the desired radios, making sure to also
+  pickup the necessary config for the radio from the outside source.
+*/}}
+{{- range $desiredRadio := .Values.desiredRadios }}
+{{- range $radio := $ru_list_yaml.ru_list }}
+{{ if and (eq $radio.name $desiredRadio.name) (eq $desiredRadio.type "srsran-monolithic") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-monolithic-{{ $desiredRadio.name | lower }}
+  namespace: srsran-monolithic
+  labels:
+    app: dpdk
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: {{ $radio.node | quote }}
+{{- if false }}
+  initContainers:
+  - name: setup-network-interface
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 &&
+      ip link set $INTERFACE vf $VF_INDEX mac $DU_MAC_ADDR trust on spoofchk off &&
+      ip link set $INTERFACE promisc on
+    securityContext:
+      privileged: true
+    env:
+    - name: INTERFACE
+      value: {{ $radio.network_interface | quote }}
+    - name: VF_INDEX
+      value: {{ $radio.dpdk_vf_index | quote }}
+    - name: DU_MAC_ADDR
+      value: {{ $radio.du_mac | quote }}
+{{- end }}
+  containers:
+  - name: srsran
+    image: ambroserb3/netsys-edi-public:monolithic
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y iproute2 libatomic1 nano iproute2 &&
+      sed "s/__GNB_BIND_ADDR__/$POD_IP/g" /config/gnb.conf > /tmp/gnb.conf &&
+      taskset -c $CPU_CORES chrt -f 99 gnb -c /tmp/gnb.conf
+    securityContext:
+      privileged: true  # Required for DPDK
+    resources:
+      requests:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "16Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - mountPath: /config
+      name: ran-config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: CPU_CORES
+      value: {{ $radio.cpu_cores | quote }}
+  - name: metrics
+    image: ubuntu:latest
+    command: ["bash", "-c"]
+    args:
+    - apt update &&
+      apt install -y python3 &&
+      python3 /etc/scripts/metrics-collect.py 127.0.0.1 55555 /tmp/metrics.log
+    volumeMounts:
+    - mountPath: /etc/scripts
+      name: metrics-collect
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: ran-config
+    configMap:
+      name: srsran-monolithic-{{ $desiredRadio.name | lower }}-config
+      items:
+      - key: gnb.conf
+        path: gnb.conf
+  - name: metrics-collect
+    configMap:
+      name: metrics-collect-script
+      items:
+      - key: metrics-collect.py
+        path: metrics-collect.py
+---
+{{- end }}
+{{- end }}
+{{- end }}

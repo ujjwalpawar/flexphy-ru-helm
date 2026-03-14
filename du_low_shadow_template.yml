@@ -1,0 +1,65 @@
+# Example config for a DU with one 20MHz TDD cell using a USRP as RF frontend.
+
+ru_ofh:
+  t1a_max_cp_dl: 470
+  t1a_min_cp_dl: 419
+  t1a_max_cp_ul: 430
+  t1a_min_cp_ul: 286
+  t1a_max_up: 390
+  t1a_min_up: 80
+  ta4_max: 500
+  ta4_min: 25
+  is_prach_cp_enabled: false
+  enable_lf_prach_slot_autoderivation: true
+  ignore_ecpri_payload_size: true
+  compr_method_ul: bfp
+  compr_bitwidth_ul: 9
+  compr_method_dl: bfp
+  compr_bitwidth_dl: 9
+  compr_method_prach: bfp
+  compr_bitwidth_prach: 9
+  enable_ul_static_compr_hdr: true
+  enable_dl_static_compr_hdr: true
+  iq_scaling: 12.8
+  cells:
+    - network_interface: 0000:86:09.1
+      ru_mac_addr: 70:b3:d5:e1:5f:e9
+      du_mac_addr: 00:11:22:33:77:88
+      vlan_tag_cp: 11
+      vlan_tag_up: 11
+      prach_port_id: [4, 5, 6, 7]
+      dl_port_id: [0, 1, 2, 3]
+      ul_port_id: [0, 1, 2, 3]
+
+hal:
+   eal_args: "--lcores (0-1)@(10-20) -a 0000:86:09.1"
+
+log:
+  filename: stdout
+  all_level: error
+  phy_level: error
+
+expert_phy:
+  max_request_headroom_slots: 4
+  max_proc_delay: 4
+
+
+split6_network:
+  use_network: true
+  log_level: error
+  control_bind_ip: 10.0.0.6
+  control_port: 10003
+  slot_bind_ip: 10.0.0.6
+  slot_port: 10004
+
+
+migration:
+  enabled: true
+  log_level: info
+  controller_bind_ip: 0.0.0.0
+  controller_port: 9991  # Different controller port
+  warmup_slots: 100
+  min_ready_slots: 20
+  start_in_shadow_mode: true  # START IN SHADOW MODE
+  proxy_address: 10.0.0.2     # Proxy address for shadow registration
+  proxy_registration_port: 10005  # Proxy registration port

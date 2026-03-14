@@ -1,0 +1,70 @@
+gnb_id_bit_length: {{ .gnb_id_length }}
+gnb_id: {{ .gnb_id }}
+
+log:
+  filename: stdout
+  all_level: error
+  ngap_level: info
+  config_level: debug
+
+pcap:
+  f1ap_filename: __PCAP_DIR__/gnb_f1ap.pcap
+  f1ap_enable: true
+  ngap_filename: __PCAP_DIR__/gnb_ngap.pcap
+  ngap_enable: true
+
+cu_cp:
+  max_nof_dus: {{ .max_nof_dus }}
+  request_pdu_session_timeout: 1
+  amf:
+    addr: {{ .amf_ip }}
+    port: 38412
+    bind_addr: {{ .amf_bind_ip }}
+    sctp_nodelay: false
+    supported_tracking_areas:
+    - tac: 1
+      plmn_list:
+      - plmn: "99999"
+        tai_slice_support_list:
+        - sst: 1
+  f1ap:
+    bind_addr: {{ .f1ap_bind_ip }}
+  rrc:
+    force_reestablishment_fallback: true
+  mobility:
+    trigger_handover_from_measurements: true
+    cells:
+    {{- range .cells }}
+    - nr_cell_id: {{ .nr_cell_id }}
+      periodic_report_cfg_id: 1
+      ncells:
+      {{- range .ncells }}
+      - nr_cell_id: {{ . }}
+      {{- end }}
+    {{- end }}
+    report_configs:
+    - report_cfg_id: 1
+      report_type: periodical
+      meas_trigger_quantity: rsrp
+      report_interval_ms: 480
+      time_to_trigger_ms: 0
+
+cu_up:
+  ngu:
+    gtpu:
+      queue_size: 8192
+      batch_size: 512
+  f1u:
+    socket:
+    - bind_addr: {{ .f1u_bind_ip }}
+      ext_addr: auto
+
+metrics:
+  enable_json: true
+  periodicity:
+    cu_cp_report_period: 1000
+
+remote_control:
+  bind_addr: 0.0.0.0
+  enabled: true
+  port: 55555

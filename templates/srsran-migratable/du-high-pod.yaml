@@ -1,0 +1,112 @@
+{{- /*
+  Per-DU Pod containing two containers:
+    1. du-high  — srsdu (split-6 DU-High: MAC+RLC+Scheduler)
+    2. proxy    — srsdu_low_proxy (migration proxy sidecar)
+
+  Both containers share the pod network namespace so the proxy
+  can reach the scheduler drain endpoint on localhost:9989 and
+  srsdu can reach the proxy FAPI ports on localhost:9997/9998.
+*/ -}}
+{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
+
+{{- $radios := list }}
+{{- range $desiredRadio := .Values.desiredRadios }}
+  {{- if eq $desiredRadio.type "srsran-migratable" }}
+    {{- range $radio := $ru_list_yaml.ru_list }}
+      {{- if eq $radio.name $desiredRadio.name }}
+        {{- $radios = append $radios $radio }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range $radio := $radios }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: srsran-mig-du-high-{{ $radio.name | lower }}
+  namespace: srsran-migratable
+  labels:
+    app: srsran-mig-du-high
+    du-name: {{ $radio.name | lower }}
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: {{ $radio.node | quote }}
+  initContainers:
+  - name: wait-cu
+    image: ubuntu:latest
+    securityContext:
+      capabilities:
+        add: ["NET_RAW", "NET_ADMIN"]
+    command: ["bash", "-c"]
+    args:
+    - apt-get update -qq && apt-get install -y -qq nmap &&
+      until nmap -sY -p 38472 {{ $.Values.splitCUConf.f1ap_bind_ip }} | grep "38472/sctp open" &>/dev/null; do
+        echo "Waiting for CU F1AP ..."; sleep 2;
+      done
+  containers:
+  # -----------------------------------------------------------
+  # Container 1: DU-High (srsdu split-6)
+  # -----------------------------------------------------------
+  - name: du-high
+    image: {{ $.Values.image  }}
+    imagePullPolicy: Always
+    command: ["bash", "-c"]
+    args:
+    - sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
+      until nc -z 127.0.0.1 9997; do echo "Waiting for proxy..."; sleep 1; done &&
+      taskset -c {{ $radio.cpu_cores }} chrt -f 99 srsdu -c /tmp/du.conf
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        memory: "8Gi"
+        hugepages-1Gi: "4Gi"
+      limits:
+        memory: "8Gi"
+        hugepages-1Gi: "4Gi"
+    volumeMounts:
+    - name: hugepage
+      mountPath: /dev/hugepages
+    - name: du-high-config
+      mountPath: /config
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+
+  # -----------------------------------------------------------
+  # Container 2: Migration proxy sidecar (srsdu_low_proxy)
+  # Shares localhost with du-high — no separate networking needed.
+  # Connects to DU-Low via its Kubernetes service.
+  # -----------------------------------------------------------
+  - name: proxy
+    image: {{ $.Values.image  }}
+    imagePullPolicy: Always
+    command: ["bash", "-c"]
+    args:
+    - srsdu_low_proxy -c /config/proxy.conf
+    resources:
+      requests:
+        memory: "512Mi"
+      limits:
+        memory: "512Mi"
+    volumeMounts:
+    - name: du-high-config
+      mountPath: /config
+
+  volumes:
+  - name: hugepage
+    emptyDir:
+      medium: HugePages
+  - name: du-high-config
+    configMap:
+      name: srsran-mig-du-high-{{ $radio.name | lower }}-config
+      items:
+      - key: du.conf
+        path: du.conf
+      - key: proxy.conf
+        path: proxy.conf
+{{- end }}

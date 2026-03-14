@@ -1,0 +1,36 @@
+amf_ip: 172.30.129.35
+
+splitCUConf:
+  gnb_id: 1
+  gnb_id_length: 22
+  cores: "26-49"
+  node: k8s-worker1
+  amf_bind_ip: 10.0.0.1
+  f1ap_bind_ip: 10.0.0.1
+  f1u_bind_ip: 172.30.129.57
+
+desiredRadios:
+- name: "INF1"
+  type: srsran-split
+- name: "INF2"
+  type: srsran-split
+- name: "INF3"
+  type: srsran-split
+- name: "CM1"
+  type: srsran-split
+- name: "CM2"
+  type: srsran-split
+- name: "DSB1"
+  type: srsran-split
+- name: "DSB3"
+  type: srsran-split
+- name: "MLB4"
+  type: srsran-split
+- name: "MLB6"
+  type: srsran-split
+- name: "APT3"
+  type: srsran-split
+- name: "MLB1"
+  type: srsran-split
+- name: "DSB2"
+  type: srsran-split

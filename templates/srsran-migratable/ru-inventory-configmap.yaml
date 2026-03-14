@@ -1,0 +1,26 @@
+{{- /*
+  Expose the full ru_list as a ConfigMap mounted into the orchestrator pod.
+  The orchestrator's VfRegistry loads this at startup to resolve radio names
+  to hardware config (node, VF index, MACs, CPU cores) without the caller
+  needing to know any hardware details.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ru-inventory
+  namespace: srsran-migratable
+data:
+  ru_list.yaml: |
+    ru_list:
+    {{- range .Values.ru_list }}
+    - name: {{ .name | quote }}
+      node: {{ .node | quote }}
+      network_interface: {{ .network_interface | quote }}
+      ru_mac: {{ .ru_mac | quote }}
+      du_mac: {{ .du_mac | quote }}
+      dpdk_pci_id: {{ .dpdk_pci_id | quote }}
+      dpdk_vf_index: {{ .dpdk_vf_index | quote }}
+      vlan: {{ .vlan | quote }}
+      cpu_cores_p1: {{ .cpu_cores_p1 | quote }}
+      cpu_cores_p2: {{ .cpu_cores_p2 | quote }}
+    {{- end }}
