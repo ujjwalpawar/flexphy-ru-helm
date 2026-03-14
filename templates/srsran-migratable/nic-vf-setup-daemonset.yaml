@@ -90,16 +90,8 @@ spec:
             - |
               set -e
               tdnf install -y iproute2 || true
-              NODE="${NODE_NAME}"
-              SCRIPT="/scripts/setup-${NODE}.sh"
-
-              if [ ! -f "$SCRIPT" ]; then
-                echo "[nic-vf-setup] No script for node $NODE — nothing to do"
-                exit 0
-              fi
-
-              echo "[nic-vf-setup] Running VF setup on $NODE"
-              sh "$SCRIPT"
+              echo "[nic-vf-setup] Running VF setup on ${NODE_NAME}"
+              sh /scripts/setup.sh
 
               # -------------------------------------------------------
               # Discover VF PCI IDs from sysfs and publish to ConfigMap

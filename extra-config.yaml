@@ -1,22 +1,21 @@
+# ru_list: one entry per radio.
+# vf_index is the VF slot reserved for this radio on EVERY port on EVERY node.
+# Adding a new radio: append an entry with the next vf_index and run helm upgrade.
+# The NIC DaemonSet will automatically create the extra VF on all ports/nodes.
 ru_list:
 - name: "INF1"
+  vf_index: 0
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:ec"
   ip_address: "10.10.0.101"
-  du_mac: "00:11:22:33:88:88"   # fixed in RU config — shadow must use same MAC
+  du_mac: "00:11:22:33:88:88"
   dp_switch_port: "9/4"
   vlan: "23"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker6"
-  network_interface: "ens10f0np0"
-  dpdk_pci_id: "0000:86:01.0"
-  dpdk_vf_index: "0"
-  cpu_cores: "7,4,5,6,32,33,34,35"   # p1 + p2; sibling(7)=35 included in p2
-  cpu_cores_p1: "7"
-  cpu_cores_p2: "4,5,6,32,33,34,35"
 
 - name: "INF3"
+  vf_index: 1
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:e9"
   ip_address: "10.10.0.103"
@@ -25,15 +24,9 @@ ru_list:
   vlan: "11"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker6"
-  network_interface: "ens10f1np1"
-  dpdk_pci_id: "0000:86:09.1"
-  dpdk_vf_index: "1"
-  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
-  cpu_cores_p1: "11"
-  cpu_cores_p2: "8,9,10,36,37,38,39"
 
 - name: "CM1"
+  vf_index: 2
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:fe"
   ip_address: "10.10.0.107"
@@ -42,15 +35,9 @@ ru_list:
   vlan: "24"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker6"
-  network_interface: "ens10f1np1"
-  dpdk_pci_id: "0000:86:09.0"
-  dpdk_vf_index: "0"
-  cpu_cores: "15,12,13,14,40,41,42,43" # p1 + p2; sibling(15)=43 included in p2
-  cpu_cores_p1: "15"
-  cpu_cores_p2: "12,13,14,40,41,42,43"
 
 - name: "DSB2"
+  vf_index: 3
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:d7"
   ip_address: "10.10.0.105"
@@ -59,15 +46,9 @@ ru_list:
   vlan: "10"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker6"           # packed onto worker6 (4th DU-Low)
-  network_interface: "ens10f2np2"  # UPDATE: verify port 2 PCI on worker6
-  dpdk_pci_id: "0000:86:11.0"     # UPDATE: verify PCI on worker6
-  dpdk_vf_index: "0"
-  cpu_cores: "19,16,17,18,44,45,46,47" # p1 + p2; sibling(19)=47 included in p2
-  cpu_cores_p1: "19"
-  cpu_cores_p2: "16,17,18,44,45,46,47"
 
 - name: "MLB1"
+  vf_index: 4
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:ef"
   ip_address: "10.10.0.107"
@@ -76,15 +57,9 @@ ru_list:
   vlan: "14"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker2"
-  network_interface: "ens10f2np2"
-  dpdk_pci_id: "0000:86:11.1"
-  dpdk_vf_index: "0"
-  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
-  cpu_cores_p1: "11"
-  cpu_cores_p2: "8,9,10,36,37,38,39"
 
 - name: "MLB4"
+  vf_index: 5
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:e6"
   ip_address: "10.10.0.112"
@@ -93,15 +68,9 @@ ru_list:
   vlan: "16"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker4"
-  network_interface: "ens10f1np1"
-  dpdk_pci_id: "0000:86:09.0"
-  dpdk_vf_index: "0"
-  cpu_cores: "7,4,5,6,32,33,34,35"   # p1 + p2; sibling(7)=35 included in p2
-  cpu_cores_p1: "7"
-  cpu_cores_p2: "4,5,6,32,33,34,35"
 
 - name: "APT3"
+  vf_index: 6
   vendor: "benetel"
   ru_mac: "70:b3:d5:e1:5f:e3"
   ip_address: "10.10.0.118"
@@ -110,10 +79,3 @@ ru_list:
   vlan: "17"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker4"
-  network_interface: "ens10f2np2"
-  dpdk_pci_id: "0000:86:11.0"
-  dpdk_vf_index: "0"
-  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
-  cpu_cores_p1: "11"
-  cpu_cores_p2: "8,9,10,36,37,38,39"

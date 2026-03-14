@@ -1,4 +1,13 @@
 image: ujjwal1997/srsran:flexphy
+
+# NIC ports present on every worker node.
+# VFs for ALL DUs are created on ALL ports on ALL nodes so any DU can run anywhere.
+# To add a port, append here — the setup script updates automatically.
+nicPorts:
+  - ens10f0np0
+  - ens10f1np1
+  - ens10f2np2
+  - ens10f3np3
 debug: false   # When true: all pods run 'sleep infinity' — configs rendered but no binaries started
 amf_ip: 172.30.129.35
 cuPcapHostPath: /home/netsys/netdt_cu_pcap
