@@ -72,7 +72,7 @@ spec:
             path: /sys
         - name: host-sbin
           hostPath:
-            path: /sbin
+            path: /usr/sbin
 
       initContainers:
         - name: vf-setup
