@@ -64,14 +64,14 @@ ru_list:
   vlan: "10"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker2"
-  network_interface: "ens10f3np3"
-  dpdk_pci_id: "0000:86:19.0"
+  node: "k8s-worker6"           # packed onto worker6 (4th DU-Low)
+  network_interface: "ens10f2np2"  # UPDATE: verify port 2 PCI on worker6
+  dpdk_pci_id: "0000:86:11.0"     # UPDATE: verify PCI on worker6
   dpdk_vf_index: "0"
   cpu_cores: "5-27"
-  # DU-Low: 8 logical cores from sibling pairs (4,32)(5,33)(6,34)(7,35)
-  cpu_cores_p1: "7"
-  cpu_cores_p2: "4,5,6,32,33,34,35"
+  # DU-Low: 8 logical cores from sibling pairs (16,44)(17,45)(18,46)(19,47)
+  cpu_cores_p1: "19"
+  cpu_cores_p2: "16,17,18,44,45,46,47"
 
 
 - name: "MLB1"
