@@ -88,7 +88,7 @@ spec:
             - -c
             - |
               set -e
-              apk add --no-cache iproute2 >/dev/null 2>&1
+              tdnf install -y iproute2 >/dev/null 2>&1
               NODE="${NODE_NAME}"
               SCRIPT="/scripts/setup-${NODE}.sh"
 
