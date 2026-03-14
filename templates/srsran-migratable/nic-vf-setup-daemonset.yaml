@@ -70,6 +70,9 @@ spec:
         - name: host-sys
           hostPath:
             path: /sys
+        - name: host-sbin
+          hostPath:
+            path: /sbin
 
       initContainers:
         - name: vf-setup
@@ -88,6 +91,7 @@ spec:
             - -c
             - |
               set -e
+              export PATH="/host-sbin:$PATH"
               NODE="${NODE_NAME}"
               SCRIPT="/scripts/setup-${NODE}.sh"
 
@@ -135,6 +139,8 @@ spec:
               mountPath: /scripts
             - name: host-sys
               mountPath: /sys
+            - name: host-sbin
+              mountPath: /host-sbin
 
       containers:
         - name: pause
