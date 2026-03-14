@@ -126,7 +126,8 @@ spec:
                 && kubectl -n "${NAMESPACE}" patch configmap "vf-pci-map-${NODE}" \
                      --type merge -p "{\"data\":{\"pci_map\":${JSON}}}" \
                 || kubectl -n "${NAMESPACE}" create configmap "vf-pci-map-${NODE}" \
-                     --from-literal="pci_map=${JSON}"
+                     --from-literal="pci_map=${JSON}" \
+                     --labels="srsran.io/vf-pci-map=true"
 
               echo "[nic-vf-setup] VF PCI map published to vf-pci-map-${NODE}"
           volumeMounts:

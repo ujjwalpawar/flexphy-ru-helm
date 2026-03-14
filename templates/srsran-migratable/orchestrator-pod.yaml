@@ -46,6 +46,16 @@ spec:
       value: "/templates/du_low_shadow_template.yml"
     - name: ACTIVE_CONFIG_TEMPLATE
       value: "/templates/du_low_active_template.yml"
+    - name: CU_NODE
+      value: {{ .Values.splitCUConf.node | quote }}
+    - name: CU_CORES
+      value: {{ .Values.splitCUConf.cores | quote }}
+    - name: AMF_IP
+      value: {{ .Values.amf_ip | quote }}
+    - name: F1AP_BIND_IP
+      value: {{ .Values.splitCUConf.f1ap_bind_ip | quote }}
+    - name: CU_PCAP_HOST_PATH
+      value: {{ .Values.cuPcapHostPath | default "/home/netsys/netdt_data" | quote }}
     volumeMounts:
     - name: ru-inventory
       mountPath: /config

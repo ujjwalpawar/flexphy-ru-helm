@@ -8,13 +8,11 @@ ru_list:
   vlan: "23"
   arfcn: "660000"
   bandwidth: "100"
-  node: "k8s-worker6"           # active server
+  node: "k8s-worker6"
   network_interface: "ens10f0np0"
   dpdk_pci_id: "0000:86:01.0"
   dpdk_vf_index: "0"
-  cpu_cores: "33-50"
-  # DU-Low: 8 logical cores from sibling pairs (4,32)(5,33)(6,34)(7,35)
-  # Siblings: cpu N and N+28. Housekeeping: 0-3,28-31 (excluded).
+  cpu_cores: "7,4,5,6,32,33,34,35"   # p1 + p2; sibling(7)=35 included in p2
   cpu_cores_p1: "7"
   cpu_cores_p2: "4,5,6,32,33,34,35"
 
@@ -31,8 +29,7 @@ ru_list:
   network_interface: "ens10f1np1"
   dpdk_pci_id: "0000:86:09.1"
   dpdk_vf_index: "1"
-  cpu_cores: "2-25"
-  # DU-Low: 8 logical cores from sibling pairs (8,36)(9,37)(10,38)(11,39)
+  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
   cpu_cores_p1: "11"
   cpu_cores_p2: "8,9,10,36,37,38,39"
 
@@ -49,11 +46,9 @@ ru_list:
   network_interface: "ens10f1np1"
   dpdk_pci_id: "0000:86:09.0"
   dpdk_vf_index: "0"
-  cpu_cores: "5-27"
-  # DU-Low: 8 logical cores from sibling pairs (12,40)(13,41)(14,42)(15,43)
+  cpu_cores: "15,12,13,14,40,41,42,43" # p1 + p2; sibling(15)=43 included in p2
   cpu_cores_p1: "15"
   cpu_cores_p2: "12,13,14,40,41,42,43"
-
 
 - name: "DSB2"
   vendor: "benetel"
@@ -68,11 +63,9 @@ ru_list:
   network_interface: "ens10f2np2"  # UPDATE: verify port 2 PCI on worker6
   dpdk_pci_id: "0000:86:11.0"     # UPDATE: verify PCI on worker6
   dpdk_vf_index: "0"
-  cpu_cores: "5-27"
-  # DU-Low: 8 logical cores from sibling pairs (16,44)(17,45)(18,46)(19,47)
+  cpu_cores: "19,16,17,18,44,45,46,47" # p1 + p2; sibling(19)=47 included in p2
   cpu_cores_p1: "19"
   cpu_cores_p2: "16,17,18,44,45,46,47"
-
 
 - name: "MLB1"
   vendor: "benetel"
@@ -87,8 +80,7 @@ ru_list:
   network_interface: "ens10f2np2"
   dpdk_pci_id: "0000:86:11.1"
   dpdk_vf_index: "0"
-  cpu_cores: "33-50"
-  # DU-Low: 8 logical cores from sibling pairs (8,36)(9,37)(10,38)(11,39)
+  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
   cpu_cores_p1: "11"
   cpu_cores_p2: "8,9,10,36,37,38,39"
 
@@ -105,11 +97,9 @@ ru_list:
   network_interface: "ens10f1np1"
   dpdk_pci_id: "0000:86:09.0"
   dpdk_vf_index: "0"
-  cpu_cores: "5-27"
-  # DU-Low: 8 logical cores from sibling pairs (4,32)(5,33)(6,34)(7,35)
+  cpu_cores: "7,4,5,6,32,33,34,35"   # p1 + p2; sibling(7)=35 included in p2
   cpu_cores_p1: "7"
   cpu_cores_p2: "4,5,6,32,33,34,35"
-
 
 - name: "APT3"
   vendor: "benetel"
@@ -124,8 +114,6 @@ ru_list:
   network_interface: "ens10f2np2"
   dpdk_pci_id: "0000:86:11.0"
   dpdk_vf_index: "0"
-  cpu_cores: "33-50"
-  # DU-Low: 8 logical cores from sibling pairs (8,36)(9,37)(10,38)(11,39)
+  cpu_cores: "11,8,9,10,36,37,38,39"  # p1 + p2; sibling(11)=39 included in p2
   cpu_cores_p1: "11"
   cpu_cores_p2: "8,9,10,36,37,38,39"
-
