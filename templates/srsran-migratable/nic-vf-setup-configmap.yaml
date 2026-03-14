@@ -89,7 +89,7 @@ data:
     {{- range $assignments }}
     # RU: {{ .ru }}
     log "VF for RU {{ .ru }}: {{ .iface }} vf{{ .vf }} -> {{ .mac }}"
-    /host-sbin/ip link set {{ .iface }} vf {{ .vf }} mac {{ .mac }} trust on spoofchk off
+    ip link set {{ .iface }} vf {{ .vf }} mac {{ .mac }} trust on spoofchk off
     {{- end }}
 
     log "VF setup complete for node {{ $node }}"
