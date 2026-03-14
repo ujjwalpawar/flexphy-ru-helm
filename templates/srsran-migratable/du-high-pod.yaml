@@ -33,6 +33,7 @@ metadata:
 spec:
   nodeSelector:
     kubernetes.io/hostname: {{ $radio.node | quote }}
+  {{- if not $.Values.debug }}
   initContainers:
   - name: wait-cu
     image: ubuntu:latest
@@ -45,6 +46,7 @@ spec:
       until nmap -sY -p 38472 {{ $.Values.splitCUConf.f1ap_bind_ip }} | grep "38472/sctp open" &>/dev/null; do
         echo "Waiting for CU F1AP ..."; sleep 2;
       done
+  {{- end }}
   containers:
   # -----------------------------------------------------------
   # Container 1: DU-High (srsdu split-6)
@@ -53,10 +55,14 @@ spec:
     image: {{ $.Values.image  }}
     imagePullPolicy: Always
     command: ["bash", "-c"]
+    {{- if $.Values.debug }}
+    args: ["sleep infinity"]
+    {{- else }}
     args:
     - sed "s/__DU_BIND_ADDR__/$POD_IP/g" /config/du.conf > /tmp/du.conf &&
       until nc -z 127.0.0.1 9997; do echo "Waiting for proxy..."; sleep 1; done &&
       taskset -c {{ $radio.cpu_cores }} chrt -f 99 srsdu -c /tmp/du.conf
+    {{- end }}
     securityContext:
       privileged: true
     resources:
@@ -86,8 +92,12 @@ spec:
     image: {{ $.Values.image  }}
     imagePullPolicy: Always
     command: ["bash", "-c"]
+    {{- if $.Values.debug }}
+    args: ["sleep infinity"]
+    {{- else }}
     args:
     - srsdu_low_proxy -c /config/proxy.conf
+    {{- end }}
     resources:
       requests:
         memory: "512Mi"

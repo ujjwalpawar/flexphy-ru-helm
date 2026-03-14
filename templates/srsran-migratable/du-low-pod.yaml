@@ -34,8 +34,12 @@ spec:
     image: {{ $.Values.image  }}
     imagePullPolicy: Always
     command: ["bash", "-c"]
+    {{- if $.Values.debug }}
+    args: ["sleep infinity"]
+    {{- else }}
     args:
     - srsdu_low -c /config/du_low.conf
+    {{- end }}
     securityContext:
       privileged: true   # Required for DPDK + hugepages + NIC binding
     resources:

@@ -27,6 +27,9 @@ spec:
   - name: orchestrator
     image: {{ .Values.orchestratorImage | default "ujjwal1997/migration-orchestrator:latest" }}
     imagePullPolicy: Always
+    {{- if $.Values.debug }}
+    command: ["sleep", "infinity"]
+    {{- end }}
     ports:
     - containerPort: 9000
       name: http

@@ -1,4 +1,5 @@
 image: ujjwal1997/srsran:flexphy
+debug: false   # When true: all pods run 'sleep infinity' — configs rendered but no binaries started
 amf_ip: 172.30.129.35
 cuPcapHostPath: /home/netsys/netdt_cu_pcap
 
