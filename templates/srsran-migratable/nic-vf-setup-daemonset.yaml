@@ -88,7 +88,6 @@ spec:
             - -c
             - |
               set -e
-              apt-get update -qq && apt-get install -y -qq iproute2
               NODE="${NODE_NAME}"
               SCRIPT="/scripts/setup-${NODE}.sh"
 
