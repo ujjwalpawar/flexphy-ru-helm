@@ -117,11 +117,15 @@ spec:
               echo "[nic-vf-setup] PCI map: $JSON"
 
               # Write/update ConfigMap via kubectl
-              kubectl -n "${NAMESPACE}" get configmap "vf-pci-map-${NODE}" >/dev/null 2>&1 \
-                && kubectl -n "${NAMESPACE}" patch configmap "vf-pci-map-${NODE}" \
-                     --type merge -p "{\"data\":{\"pci_map\":${JSON}}}" \
-                || kubectl -n "${NAMESPACE}" create configmap "vf-pci-map-${NODE}" \
-                     --from-literal="pci_map=${JSON}"
+              # pci_map must be stored as a string value, not a JSON object
+              if kubectl -n "${NAMESPACE}" get configmap "vf-pci-map-${NODE}" >/dev/null 2>&1; then
+                kubectl -n "${NAMESPACE}" create configmap "vf-pci-map-${NODE}" \
+                  --from-literal="pci_map=${JSON}" --dry-run=client -o yaml \
+                  | kubectl apply -f -
+              else
+                kubectl -n "${NAMESPACE}" create configmap "vf-pci-map-${NODE}" \
+                  --from-literal="pci_map=${JSON}"
+              fi
               kubectl -n "${NAMESPACE}" label configmap "vf-pci-map-${NODE}" \
                 "srsran.io/vf-pci-map=true" --overwrite
 
