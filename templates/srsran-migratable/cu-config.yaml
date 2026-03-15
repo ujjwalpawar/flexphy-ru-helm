@@ -19,16 +19,7 @@
   {{ fail "splitCUConf:gnb_id_length must be 22 for srsran-migratable templates" }}
 {{- end }}
 
-{{- $radios := list }}
-{{- range $desiredRadio := .Values.desiredRadios }}
-  {{- if eq $desiredRadio.type "srsran-migratable" }}
-    {{- range $radio := $ru_list_yaml.ru_list }}
-      {{- if eq $radio.name $desiredRadio.name }}
-        {{- $radios = append $radios $radio }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
-{{- end }}
+{{- $radios := $ru_list_yaml.ru_list -}}
 
 {{- if gt (len $radios) 0 }}
 
