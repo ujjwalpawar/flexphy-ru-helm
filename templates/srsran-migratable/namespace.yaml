@@ -1,22 +1,6 @@
-{{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
-{{- $radios := list -}}
-{{- range $desiredRadio := .Values.desiredRadios -}}
-  {{- if eq $desiredRadio.type "srsran-migratable" -}}
-    {{- range $radio := $ru_list_yaml.ru_list -}}
-      {{- if eq $radio.name $desiredRadio.name -}}
-        {{- $radios = append $radios $radio -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
-
-{{- if gt (len $radios) 0 }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: srsran-migratable
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
-{{- end }}
+{{- /*
+  Namespace is created externally via:
+    helm upgrade --install ... --create-namespace
+  Do NOT manage it as a hook — before-hook-creation would delete the namespace
+  on every upgrade, destroying Helm release tracking secrets stored inside it.
+*/ -}}
