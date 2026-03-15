@@ -3,77 +3,86 @@
 
 {{- if gt (len $radios) 0 }}
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: migration-orchestrator
   namespace: srsran-migratable
   labels:
     app: migration-orchestrator
 spec:
-  serviceAccountName: migration-orchestrator
-  nodeSelector:
-    kubernetes.io/hostname: {{ .Values.splitCUConf.node }}
-  containers:
-  - name: orchestrator
-    image: {{ .Values.orchestratorImage | default "ujjwal1997/migration-orchestrator:latest" }}
-    imagePullPolicy: Always
-    {{- if $.Values.debug }}
-    command: ["sleep", "infinity"]
-    {{- end }}
-    ports:
-    - containerPort: 9000
-      name: http
-    env:
-    - name: NAMESPACE
-      value: srsran-migratable
-    - name: SRSRAN_IMAGE
-      value: {{ .Values.image  | quote }}
-    - name: WARMUP_TIMEOUT_S
-      value: "120"
-    - name: RU_LIST_PATH
-      value: "/config/ru_list.yaml"
-    - name: SHADOW_CONFIG_TEMPLATE
-      value: "/templates/du_low_shadow_template.yml"
-    - name: ACTIVE_CONFIG_TEMPLATE
-      value: "/templates/du_low_active_template.yml"
-    - name: CU_NODE
-      value: {{ .Values.splitCUConf.node | quote }}
-    - name: CU_CORES
-      value: {{ .Values.splitCUConf.cores | quote }}
-    - name: AMF_IP
-      value: {{ .Values.amf_ip | quote }}
-    - name: F1AP_BIND_IP
-      value: {{ .Values.splitCUConf.f1ap_bind_ip | quote }}
-    - name: CU_PCAP_HOST_PATH
-      value: {{ .Values.cuPcapHostPath | default "/home/netsys/netdt_data" | quote }}
-    volumeMounts:
-    - name: ru-inventory
-      mountPath: /config
-      readOnly: true
-    - name: du-low-config-templates
-      mountPath: /templates
-      readOnly: true
-    livenessProbe:
-      httpGet:
-        path: /api/v1/healthz
-        port: 9000
-      initialDelaySeconds: 5
-      periodSeconds: 10
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "200m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
-  volumes:
-  - name: ru-inventory
-    configMap:
-      name: ru-inventory
-  - name: du-low-config-templates
-    configMap:
-      name: du-low-config-templates
+  replicas: 1
+  selector:
+    matchLabels:
+      app: migration-orchestrator
+  template:
+    metadata:
+      labels:
+        app: migration-orchestrator
+    spec:
+      serviceAccountName: migration-orchestrator
+      nodeSelector:
+        kubernetes.io/hostname: {{ .Values.splitCUConf.node }}
+      containers:
+      - name: orchestrator
+        image: {{ .Values.orchestratorImage | default "ujjwal1997/migration-orchestrator:latest" }}
+        imagePullPolicy: Always
+        {{- if $.Values.debug }}
+        command: ["sleep", "infinity"]
+        {{- end }}
+        ports:
+        - containerPort: 9000
+          name: http
+        env:
+        - name: NAMESPACE
+          value: srsran-migratable
+        - name: SRSRAN_IMAGE
+          value: {{ .Values.image | quote }}
+        - name: WARMUP_TIMEOUT_S
+          value: "120"
+        - name: RU_LIST_PATH
+          value: "/config/ru_list.yaml"
+        - name: SHADOW_CONFIG_TEMPLATE
+          value: "/templates/du_low_shadow_template.yml"
+        - name: ACTIVE_CONFIG_TEMPLATE
+          value: "/templates/du_low_active_template.yml"
+        - name: CU_NODE
+          value: {{ .Values.splitCUConf.node | quote }}
+        - name: CU_CORES
+          value: {{ .Values.splitCUConf.cores | quote }}
+        - name: AMF_IP
+          value: {{ .Values.amf_ip | quote }}
+        - name: F1AP_BIND_IP
+          value: {{ .Values.splitCUConf.f1ap_bind_ip | quote }}
+        - name: CU_PCAP_HOST_PATH
+          value: {{ .Values.cuPcapHostPath | default "/home/netsys/netdt_data" | quote }}
+        volumeMounts:
+        - name: ru-inventory
+          mountPath: /config
+          readOnly: true
+        - name: du-low-config-templates
+          mountPath: /templates
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /api/v1/healthz
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: ru-inventory
+        configMap:
+          name: ru-inventory
+      - name: du-low-config-templates
+        configMap:
+          name: du-low-config-templates
 ---
 apiVersion: v1
 kind: Service
