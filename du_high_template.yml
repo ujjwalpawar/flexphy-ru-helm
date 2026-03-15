@@ -4,7 +4,7 @@ gnb_id_bit_length: {{ .gnb_id_length }}
 
 log:
   filename: stdout
-  all_level: info
+  all_level: error
   config_level: debug
 
 f1u:
