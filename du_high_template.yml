@@ -24,7 +24,7 @@ split6_network:
   du_low_slot_port: 9998
 
 fapi:
-  l2_nof_slots_ahead: 8
+  l2_nof_slots_ahead: 6
 
 cell_cfg:
   dl_arfcn: {{ .arfcn }}
@@ -37,39 +37,28 @@ cell_cfg:
   sector_id: {{ .vlan }}
   nof_antennas_dl: 4
   nof_antennas_ul: 4
-  srs:
-    srs_period_ms: 320
-    srs_max_nof_sym_per_slot: 2
-  sched_expert_cfg:
-    ta_sched_cfg:
-      ta_measurement_slot_period: 160
-      ta_cmd_offset_threshold: -1
-      ta_target: 1
-      ta_update_measurement_ul_sinr_threshold: 10
-    harq_drain:
-      retx_max_mcs: 10
-      max_drain_slots: 100
+  # sched_expert_cfg:
+  #   ta_sched_cfg:
+  #     ta_measurement_slot_period: 160
+  #     ta_cmd_offset_threshold: -1
+  #     ta_target: 1
+  #     ta_update_measurement_ul_sinr_threshold: 10
+  #   harq_drain:
+  #     retx_max_mcs: 10
+  #     max_drain_slots: 100
   prach:
     prach_config_index: 7
     prach_root_sequence_index: {{ .vlan }}
     zero_correlation_zone: 0
     prach_frequency_start: 0
-    preamble_trans_max: 4
+    preamble_trans_max: 50
     power_ramping_step_db: 4
-  pdsch:
-    olla_target_bler: 0.25
-    dmrs_additional_position: 2
-  pusch:
-    olla_target_bler: 0.1
-    dmrs_additional_position: 2
   tdd_ul_dl_cfg:
     dl_ul_tx_period: 10
     nof_dl_slots: 7
     nof_dl_symbols: 6
     nof_ul_slots: 2
     nof_ul_symbols: 4
-  ssb:
-    ssb_block_power_dbm: -16
 
 pcap:
   mac_enable: false
