@@ -4,18 +4,8 @@ gnb_id_bit_length: {{ .gnb_id_length }}
 
 log:
   filename: stdout
-  all_level: error
-  config_level: info
-
-metrics:
-  enable_json: true
-  addr: 127.0.0.1
-  port: 12346
-
-remote_control:
-  bind_addr: 0.0.0.0
-  port: 55555
-  enabled: true
+  all_level: info
+  config_level: debug
 
 f1u:
   socket:
@@ -38,7 +28,7 @@ fapi:
 
 cell_cfg:
   dl_arfcn: {{ .arfcn }}
-  band: 78
+  band: 77
   channel_bandwidth_MHz: {{ .bandwidth }}
   common_scs: 30
   plmn: "99999"
@@ -47,15 +37,8 @@ cell_cfg:
   sector_id: {{ .vlan }}
   nof_antennas_dl: 4
   nof_antennas_ul: 4
-  positioning:
-    signal: srs
-    neighbours:
-    {{- range .neighbours }}
-    - addr: {{ .addr }}
-      port: 55555
-    {{- end }}
   srs:
-    srs_period_ms: 10
+    srs_period_ms: 320
     srs_max_nof_sym_per_slot: 2
   sched_expert_cfg:
     ta_sched_cfg:
