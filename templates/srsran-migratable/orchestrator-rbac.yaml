@@ -1,14 +1,5 @@
 {{- $ru_list_yaml := $.Files.Get "extra-config.yaml" | fromYaml -}}
-{{- $radios := list -}}
-{{- range $desiredRadio := .Values.desiredRadios -}}
-  {{- if eq $desiredRadio.type "srsran-migratable" -}}
-    {{- range $radio := $ru_list_yaml.ru_list -}}
-      {{- if eq $radio.name $desiredRadio.name -}}
-        {{- $radios = append $radios $radio -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
+{{- $radios := $ru_list_yaml.ru_list -}}
 
 {{- if gt (len $radios) 0 }}
 ---
@@ -30,7 +21,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "delete", "patch"]
 - apiGroups: [""]
   resources: ["configmaps"]
-  verbs: ["get", "list", "create", "delete", "patch"]
+  verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
