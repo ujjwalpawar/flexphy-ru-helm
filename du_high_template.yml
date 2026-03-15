@@ -8,7 +8,7 @@ log:
   config_level: info
 
 metrics:
-  enable_json_metrics: true
+  enable_json: true
   addr: 127.0.0.1
   port: 12346
 
