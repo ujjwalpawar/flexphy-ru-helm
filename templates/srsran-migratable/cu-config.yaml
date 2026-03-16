@@ -53,5 +53,5 @@ metadata:
   namespace: srsran-migratable
 data:
   cu.conf: |
-{{ tpl ($.Files.Get "cu_template.yml") $ctx | indent 4 }}
+{{ tpl ($.Files.Get "cu_template.yml") (merge $ctx (dict "Template" $.Template)) | indent 4 }}
 {{- end }}
