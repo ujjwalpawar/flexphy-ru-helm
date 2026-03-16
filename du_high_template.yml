@@ -6,6 +6,7 @@ log:
   filename: stdout
   all_level: error
   config_level: debug
+  sched_level: info
 
 f1u:
   socket:
