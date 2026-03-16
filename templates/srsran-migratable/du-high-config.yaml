@@ -46,7 +46,7 @@ metadata:
   namespace: srsran-migratable
 data:
   du.conf: |
-{{ tpl ($.Files.Get "du_high_template.yml") $ctx | indent 4 }}
+{{ tpl ($.Files.Get "du_high_template.yml") (merge $ctx (dict "Template" $.Template)) | indent 4 }}
   proxy.conf: |
     # DU-High connects to proxy on these ports (localhost sidecar).
     control_listen_port: 9997
