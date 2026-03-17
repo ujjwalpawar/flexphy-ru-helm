@@ -22,7 +22,15 @@ spec:
     spec:
       serviceAccountName: migration-orchestrator
       nodeSelector:
-        kubernetes.io/hostname: {{ .Values.splitCUConf.node }}
+        dedicated: controller-only
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: controller-only
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
       containers:
       - name: orchestrator
         image: {{ .Values.orchestratorImage | default "ujjwal1997/migration-orchestrator:latest" }}
@@ -32,6 +40,7 @@ spec:
         {{- end }}
         ports:
         - containerPort: 9000
+          hostPort: 8080
           name: http
         env:
         - name: NAMESPACE
