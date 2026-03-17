@@ -120,8 +120,14 @@ spec:
               sysctl -w kernel.sched_rt_runtime_us=-1 || echo "[sysctl-tuning] SKIP: sched_rt_runtime_us"
 
               # --- Transparent hugepages off (prevents THP compaction latency spikes) ---
-              echo never > /sys/kernel/mm/transparent_hugepage/enabled
-              echo never > /sys/kernel/mm/transparent_hugepage/defrag
+              # THP may be compiled out on this kernel — skip gracefully.
+              if [ -f /sys/kernel/mm/transparent_hugepage/enabled ]; then
+                echo never > /sys/kernel/mm/transparent_hugepage/enabled
+                echo never > /sys/kernel/mm/transparent_hugepage/defrag
+                echo "[sysctl-tuning] THP disabled."
+              else
+                echo "[sysctl-tuning] SKIP: transparent_hugepage not present"
+              fi
 
               echo "[sysctl-tuning] Done."
 
