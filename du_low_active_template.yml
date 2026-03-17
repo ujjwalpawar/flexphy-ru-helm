@@ -38,8 +38,8 @@ log:
   phy_level: error
 
 expert_phy:
-  max_request_headroom_slots: 4
-  max_proc_delay: 4
+  max_request_headroom_slots: 5
+  max_proc_delay: 5
 
 split6_network:
   use_network: true
