@@ -76,8 +76,9 @@ spec:
               sysctl -w net.ipv4.tcp_mtu_probing=0
 
               # --- Busy polling (reduces wakeup latency for FAPI slot loop) ---
-              sysctl -w net.core.busy_poll=50
-              sysctl -w net.core.busy_read=50
+              # May be absent on PREEMPT_RT kernels compiled without CONFIG_NET_RX_BUSY_POLL.
+              sysctl -w net.core.busy_poll=50 || echo "[sysctl-tuning] SKIP: busy_poll"
+              sysctl -w net.core.busy_read=50 || echo "[sysctl-tuning] SKIP: busy_read"
 
               # --- Backlog / connection limits ---
               sysctl -w net.core.somaxconn=65535
