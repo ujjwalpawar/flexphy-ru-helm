@@ -107,15 +107,16 @@ spec:
               sysctl -w net.ipv4.tcp_no_metrics_save=1
 
               # --- Kernel scheduler (lower wakeup latency for DU-High threads) ---
-              sysctl -w kernel.sched_min_granularity_ns=100000
-              sysctl -w kernel.sched_wakeup_granularity_ns=100000
-              sysctl -w kernel.sched_migration_cost_ns=5000000
+              # These may be absent on PREEMPT_RT kernels — skip gracefully.
+              sysctl -w kernel.sched_min_granularity_ns=100000   || echo "[sysctl-tuning] SKIP: sched_min_granularity_ns"
+              sysctl -w kernel.sched_wakeup_granularity_ns=100000 || echo "[sysctl-tuning] SKIP: sched_wakeup_granularity_ns"
+              sysctl -w kernel.sched_migration_cost_ns=5000000    || echo "[sysctl-tuning] SKIP: sched_migration_cost_ns"
 
               # --- NUMA balancing off (cores already pinned) ---
-              sysctl -w kernel.numa_balancing=0
+              sysctl -w kernel.numa_balancing=0 || echo "[sysctl-tuning] SKIP: numa_balancing"
 
               # --- Allow RT threads to run without throttle (DU-Low: chrt -f 99) ---
-              sysctl -w kernel.sched_rt_runtime_us=-1
+              sysctl -w kernel.sched_rt_runtime_us=-1 || echo "[sysctl-tuning] SKIP: sched_rt_runtime_us"
 
               # --- Transparent hugepages off (prevents THP compaction latency spikes) ---
               echo never > /sys/kernel/mm/transparent_hugepage/enabled
