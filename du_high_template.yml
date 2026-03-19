@@ -8,6 +8,7 @@ log:
   config_level: debug
   sched_level: error
   migrate_level: info
+  attach_level: info
 
 f1u:
   socket:
