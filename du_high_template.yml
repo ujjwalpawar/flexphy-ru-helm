@@ -27,7 +27,7 @@ split6_network:
   du_low_slot_port: 9998
 
 fapi:
-  l2_nof_slots_ahead: 6
+  l2_nof_slots_ahead: 5
 
 cell_cfg:
   dl_arfcn: {{ .arfcn }}
