@@ -27,7 +27,7 @@ split6_network:
   du_low_slot_port: 9998
 
 fapi:
-  l2_nof_slots_ahead: 5
+  l2_nof_slots_ahead: 2
 
 cell_cfg:
   dl_arfcn: {{ .arfcn }}
@@ -40,7 +40,9 @@ cell_cfg:
   sector_id: {{ .vlan }}
   nof_antennas_dl: 4
   nof_antennas_ul: 4
-  # sched_expert_cfg:
+  pcg_p_nr_fr1: +23
+ 
+ # sched_expert_cfg:
   #   ta_sched_cfg:
   #     ta_measurement_slot_period: 160
   #     ta_cmd_offset_threshold: -1
@@ -62,7 +64,37 @@ cell_cfg:
     nof_dl_symbols: 6
     nof_ul_slots: 2
     nof_ul_symbols: 4
-
+  ssb:
+     ssb_period: 20                          # Optional UINT (10). Sets the period of SSB scheduling in milliseconds. Supported: [5, 10, 20].
+     ssb_block_power_dbm: -16                # Optional INT (-16). Sets the SS PBCH block power in dBm. Supported: [-60 - +50].
+     pss_to_sss_epre_db: 0
+  ul_common:
+     p_max: 23
+  pusch:
+    max_ue_mcs: 20
+    mcs_table: qam256
+    olla_snr_inc_step: 0.001
+    olla_target_bler: 0.15
+    olla_max_snr_offset: 5
+  pdsch:
+    # (keep your current config as is)
+    dmrs_additional_position: 3   # Best for 4x4 MIMO with 256-QAM
+    mcs_table: qam256
+    olla_target_bler: 0.20      # Slightly more aggressive for throughput
+    olla_cqi_inc_step: 0.01
+    olla_max_cqi_offset: 6
+    max_nof_harq_retxs: 3
+    max_rank: 4
+  srs:
+    srs_period_ms: 640
+    srs_max_nof_sym_per_slot: 6             # Optional UINT (2). Sets the number of symbols for UL slot that are reserved for the SRS cell resources. Supprted: [1 - 6].
+    srs_nof_sym_per_resource: 4             # Optional UINT (2). Sets the number of symbols per SRS resource. Supported: {1,2,4}.
+    srs_tx_comb: 2                          # Optional UINT (4). Sets the SRS TX comb size. Supported: {2, 4}.
+    srs_cyclic_shift_reuse: 1               # Optional UINT (1). Sets the SRS cyclic shift reuse factor. It needs to be compatible with the TX comb and number of UL anten>
+    srs_sequence_id_reuse: 1
+  csi:
+    csi_rs_enabled: true                    # Optional BOOLEAN (true). Enables CSI-RS resources and CSI reporting. Supported: [false, true].
+    csi_rs_period: 40 
 pcap:
   mac_enable: false
   mac_filename: /tmp/du_mac.pcap

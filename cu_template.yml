@@ -6,7 +6,7 @@ log:
   all_level: error
   ngap_level: info
   config_level: debug
-
+  attach_level: info
 pcap:
   f1ap_filename: __PCAP_DIR__/gnb_f1ap.pcap
   f1ap_enable: true
@@ -15,7 +15,7 @@ pcap:
 
 cu_cp:
   max_nof_dus: {{ .max_nof_dus }}
-  request_pdu_session_timeout: 1
+  request_pdu_session_timeout: 5
   amf:
     addr: {{ .amf_ip }}
     port: 38412
